@@ -1,0 +1,46 @@
+root = true
+
+[*]
+indent_style = space
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+indent_size = 4
+csharp_new_line_before_open_brace = all
+csharp_prefer_braces = true:suggestion
+dotnet_sort_system_directives_first = true
+
+# StyleCop: file headers are not required for this project
+dotnet_diagnostic.SA1633.severity = none
+# StyleCop: XML doc comments are not required for this project (see stylecop.json)
+dotnet_diagnostic.SA0001.severity = none
+# .NET analyzer: instruction handler methods stay instance methods for a uniform API,
+# even where a given instruction doesn't currently touch stock state
+dotnet_diagnostic.CA1822.severity = none
+# StyleCop predates file-scoped namespaces (C# 10); usings stay above `namespace X;` as usual
+dotnet_diagnostic.SA1200.severity = none
+# StyleCop's "space after )" rule fights the whitespace formatter around the null-forgiving
+# operator (`Find(x)!`) and target-typed `new`; the whitespace formatter wins that fight.
+dotnet_diagnostic.SA1009.severity = none
+# Same fight, this time over target-typed `new(...)` (SA1000 wants a space, the formatter doesn't).
+dotnet_diagnostic.SA1000.severity = none
+# StyleCop: don't force "this." qualification
+dotnet_diagnostic.SA1101.severity = none
+# StyleCop: allow underscore-free private field naming handled by .NET analyzers instead
+dotnet_diagnostic.SA1309.severity = none
+# StyleCop: record positional parameters are properties by convention, PascalCase is correct
+dotnet_diagnostic.SA1313.severity = none
+# StyleCop: don't enforce member-kind ordering (property-after-method etc.) in small static classes
+dotnet_diagnostic.SA1201.severity = none
+# StyleCop misfires on top-level statements (Program.cs): reports with no file/line, not
+# reproduced by `dotnet format`. Disabled rather than chasing a phantom location.
+dotnet_diagnostic.SA1516.severity = none
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.sln]
+indent_style = tab
