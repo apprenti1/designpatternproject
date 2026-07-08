@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8809112E-E629-4C1D-A1BE-C619191BC58F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DroneFactory", "src\DroneFactory\DroneFactory.csproj", "{E4CA6975-8273-4B08-AE5E-AEF5356FA159}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{823537DF-933C-494C-AEF1-26FCC0BFE916}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DroneFactory.Tests", "tests\DroneFactory.Tests\DroneFactory.Tests.csproj", "{C4548C1A-99F3-4A81-8A71-A09544702ABD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4CA6975-8273-4B08-AE5E-AEF5356FA159}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4CA6975-8273-4B08-AE5E-AEF5356FA159}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4CA6975-8273-4B08-AE5E-AEF5356FA159}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4CA6975-8273-4B08-AE5E-AEF5356FA159}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4548C1A-99F3-4A81-8A71-A09544702ABD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4548C1A-99F3-4A81-8A71-A09544702ABD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4548C1A-99F3-4A81-8A71-A09544702ABD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4548C1A-99F3-4A81-8A71-A09544702ABD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E4CA6975-8273-4B08-AE5E-AEF5356FA159} = {8809112E-E629-4C1D-A1BE-C619191BC58F}
+		{C4548C1A-99F3-4A81-8A71-A09544702ABD} = {823537DF-933C-494C-AEF1-26FCC0BFE916}
+	EndGlobalSection
+EndGlobal
