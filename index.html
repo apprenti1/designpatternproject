@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Drone Factory</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<div class="max-w-5xl mx-auto px-4 py-10">
+
+  <header class="flex items-center gap-3 mb-8">
+    <ion-icon name="rocket-outline" class="text-3xl text-sky-400"></ion-icon>
+    <h1 class="text-2xl font-bold tracking-tight">Drone Factory</h1>
+  </header>
+
+  <section class="grid gap-6 md:grid-cols-2">
+
+    <!-- STOCKS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold flex items-center gap-2">
+          <ion-icon name="file-tray-stacked-outline"></ion-icon> STOCKS
+        </h2>
+        <button onclick="runStocks()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="refresh-outline"></ion-icon> Rafraîchir
+        </button>
+      </div>
+      <pre id="out-stocks" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- NEEDED_STOCKS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="list-outline"></ion-icon> NEEDED_STOCKS
+      </h2>
+      <div class="flex gap-2 mb-3">
+        <input id="args-needed" type="text" placeholder="A Drone1, B Drone2"
+          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
+        <button onclick="runNeededStocks()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="send-outline"></ion-icon>
+        </button>
+      </div>
+      <pre id="out-needed" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="construct-outline"></ion-icon> INSTRUCTIONS
+      </h2>
+      <div class="flex gap-2 mb-3">
+        <input id="args-instructions" type="text" placeholder="A Drone1, B Drone2"
+          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
+        <button onclick="runInstructions()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="send-outline"></ion-icon>
+        </button>
+      </div>
+      <pre id="out-instructions" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- VERIFY -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="checkmark-circle-outline"></ion-icon> VERIFY
+      </h2>
+      <div class="flex gap-2 mb-3">
+        <input id="args-verify" type="text" placeholder="A Drone1, B Drone2"
+          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
+        <button onclick="runVerify()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="send-outline"></ion-icon>
+        </button>
+      </div>
+      <pre id="out-verify" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- PRODUCE -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800 md:col-span-2">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="hammer-outline"></ion-icon> PRODUCE
+      </h2>
+      <div class="flex gap-2 mb-3">
+        <input id="args-produce" type="text" placeholder="A Drone1, B Drone2"
+          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
+        <button onclick="runProduce()" class="bg-emerald-600 hover:bg-emerald-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="checkmark-done-outline"></ion-icon> Produire
+        </button>
+      </div>
+      <pre id="out-produce" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+  </section>
+</div>
+
+<script>
+async function callApi(path, args) {
+  const options = args === undefined
+    ? { method: "GET" }
+    : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ args }) };
+  const res = await fetch(path, options);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    return [`ERROR ${res.status} ${res.statusText}`];
+  }
+  return data?.lines ?? [];
+}
+
+function render(id, lines) {
+  document.getElementById(id).textContent = lines.join("\n");
+}
+
+async function runStocks() {
+  render("out-stocks", await callApi("/api/stocks"));
+}
+
+async function runNeededStocks() {
+  const args = document.getElementById("args-needed").value;
+  render("out-needed", await callApi("/api/needed-stocks", args));
+}
+
+async function runInstructions() {
+  const args = document.getElementById("args-instructions").value;
+  render("out-instructions", await callApi("/api/instructions", args));
+}
+
+async function runVerify() {
+  const args = document.getElementById("args-verify").value;
+  render("out-verify", await callApi("/api/verify", args));
+}
+
+async function runProduce() {
+  const args = document.getElementById("args-produce").value;
+  render("out-produce", await callApi("/api/produce", args));
+}
+
+runStocks();
+</script>
+</body>
+</html>
