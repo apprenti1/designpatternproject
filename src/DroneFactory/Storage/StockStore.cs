@@ -6,7 +6,7 @@ namespace DroneFactory.Storage;
 /// Reads and persists item quantities (drones and pieces) as JSON.
 /// The live file (stock.json) is seeded from stock.seed.json on first use.
 /// </summary>
-public sealed class StockStore
+public sealed class StockStore : IStockRepository
 {
     private readonly string _livePath;
     private readonly Dictionary<string, int> _quantities;
@@ -27,22 +27,22 @@ public sealed class StockStore
 
     public static StockStore CreateDefault() => new(RepoPaths.DataDirectory);
 
-    public int Get(string item) => _quantities.GetValueOrDefault(item);
+    public int GetQuantity(string item) => _quantities.GetValueOrDefault(item);
 
     public bool HasAtLeast(IReadOnlyDictionary<string, int> required)
-        => required.All(entry => Get(entry.Key) >= entry.Value);
+        => required.All(entry => GetQuantity(entry.Key) >= entry.Value);
 
     public void Consume(IReadOnlyDictionary<string, int> items)
     {
         foreach (var (item, quantity) in items)
         {
-            _quantities[item] = Get(item) - quantity;
+            _quantities[item] = GetQuantity(item) - quantity;
         }
     }
 
     public void Add(string item, int quantity)
     {
-        _quantities[item] = Get(item) + quantity;
+        _quantities[item] = GetQuantity(item) + quantity;
     }
 
     public void Save()
