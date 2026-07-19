@@ -77,7 +77,7 @@
     </div>
 
     <!-- PRODUCE -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800 md:col-span-2">
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="hammer-outline"></ion-icon> PRODUCE
       </h2>
@@ -89,6 +89,34 @@
         </button>
       </div>
       <pre id="out-produce" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- ADD_TEMPLATE -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="add-circle-outline"></ion-icon> ADD_TEMPLATE
+      </h2>
+      <div class="flex gap-2 mb-3">
+        <input id="args-add-template" type="text" placeholder="MyDrone, Hull_HF1, Core_C3D1, Generator_GF1, Move_MF1, Processor_P3D1, System_S3D1"
+          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
+        <button onclick="runAddTemplate()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="send-outline"></ion-icon>
+        </button>
+      </div>
+      <pre id="out-add-template" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+    </div>
+
+    <!-- Templates & categories (API-only convenience, not a subject instruction) -->
+    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800 md:col-span-2">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold flex items-center gap-2">
+          <ion-icon name="albums-outline"></ion-icon> Templates &amp; catégories
+        </h2>
+        <button onclick="runTemplates()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <ion-icon name="refresh-outline"></ion-icon> Rafraîchir
+        </button>
+      </div>
+      <div id="out-templates" class="grid gap-2 sm:grid-cols-2"></div>
     </div>
 
   </section>
@@ -135,7 +163,32 @@ async function runProduce() {
   render("out-produce", await callApi("/api/produce", args));
 }
 
+async function runAddTemplate() {
+  const args = document.getElementById("args-add-template").value;
+  render("out-add-template", await callApi("/api/templates", args));
+  runTemplates();
+  runStocks();
+}
+
+async function runTemplates() {
+  const res = await fetch("/api/templates");
+  const templates = await res.json().catch(() => []);
+  const container = document.getElementById("out-templates");
+  container.innerHTML = "";
+  for (const t of templates) {
+    const card = document.createElement("div");
+    card.className = "bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm";
+    card.innerHTML = `
+      <div class="font-semibold text-sky-400">${t.name}</div>
+      <div class="text-xs text-slate-400 mb-1">${t.categories.join(", ") || "—"}</div>
+      <div class="text-slate-300">${t.hull}, ${t.mainModule}{${t.system}}, ${t.generator}, ${t.movementModule}, ${t.controlModule}</div>
+    `;
+    container.appendChild(card);
+  }
+}
+
 runStocks();
+runTemplates();
 </script>
 </body>
 </html>
