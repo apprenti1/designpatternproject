@@ -26,8 +26,8 @@ public class StockStoreTests : IDisposable
         var store = new StockStore(_dataDirectory);
 
         Assert.True(File.Exists(livePath));
-        Assert.Equal(5, store.Get("Hull_HF1"));
-        Assert.Equal(0, store.Get("DXF-1"));
+        Assert.Equal(5, store.GetQuantity("Hull_HF1"));
+        Assert.Equal(0, store.GetQuantity("DXF-1"));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class StockStoreTests : IDisposable
     {
         var store = new StockStore(_dataDirectory);
 
-        Assert.Equal(0, store.Get("Nonexistent_Piece"));
+        Assert.Equal(0, store.GetQuantity("Nonexistent_Piece"));
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public class StockStoreTests : IDisposable
         store.Consume(new Dictionary<string, int> { ["Hull_HF1"] = 2 });
         store.Add("DXF-1", 1);
 
-        Assert.Equal(3, store.Get("Hull_HF1"));
-        Assert.Equal(1, store.Get("DXF-1"));
+        Assert.Equal(3, store.GetQuantity("Hull_HF1"));
+        Assert.Equal(1, store.GetQuantity("DXF-1"));
     }
 
     [Fact]
@@ -60,8 +60,8 @@ public class StockStoreTests : IDisposable
 
         var second = new StockStore(_dataDirectory);
 
-        Assert.Equal(0, second.Get("Hull_HF1"));
-        Assert.Equal(1, second.Get("DXF-1"));
+        Assert.Equal(0, second.GetQuantity("Hull_HF1"));
+        Assert.Equal(1, second.GetQuantity("DXF-1"));
     }
 
     [Fact]
