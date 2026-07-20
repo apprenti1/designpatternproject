@@ -36,7 +36,7 @@ public class InstructionHandlerTests : IDisposable
             Path.Combine(_dataDirectory, "stock.seed.json"),
             JsonSerializer.Serialize(seed));
 
-        _handler = new InstructionHandler(new StockStore(_dataDirectory));
+        _handler = new InstructionHandler(new StockStore(_dataDirectory), new TemplateStore(_dataDirectory));
     }
 
     public void Dispose() => Directory.Delete(_dataDirectory, recursive: true);
