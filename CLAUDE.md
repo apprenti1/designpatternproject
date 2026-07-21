@@ -4,13 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository state
 
-Phase 1 (naive implementation, readme.md §2.1) is implemented for the base subject (§3): the five core instructions (`STOCKS`, `NEEDED_STOCKS`, `INSTRUCTIONS`, `VERIFY`, `PRODUCE`) over the fixed catalog of 4 drones (§6.2). `ADD_TEMPLATE` and drone categories (§4, "Première extension") and the modules complémentaires (§5: multi-factory, orders, movement history) are not implemented yet — that's the next increments.
+Phase 1 (naive implementation, readme.md §2.1) is done for the base subject (§3): `STOCKS`, `NEEDED_STOCKS`, `INSTRUCTIONS`, `VERIFY`, `PRODUCE` over the fixed catalog of 4 drones (§6.2).
+
+Phase 2 (design patterns, readme.md §2.2/§4) is done: drone categories (§4.2) and `ADD_TEMPLATE` (§4.3) are implemented, and three patterns are introduced (Strategy for categories, Repository for stock/template persistence, Command for instruction dispatch) — see `docs/DESIGN_PATTERNS.md` for the justification of each and the alternatives considered.
+
+The modules complémentaires (§5: drone modifiers, orders, movement history, multi-factory) are not implemented yet — that's the next increment (phase 3).
 
 Code layout under `src/DroneFactory`:
 - `Domain/` — static catalogs (`PieceCatalog`, `SystemCatalog`, `DroneCatalog`) transcribed from readme.md §6.2, plus `DroneTemplate`/`Piece`/`SystemPart` records.
-- `Storage/` — `StockStore` (JSON-backed quantities) and `RepoPaths` (locates the repo root by walking up to `DroneFactory.sln`, so paths resolve the same under `dotnet run`, `dotnet test`, or a published binary).
+  - `Domain/Categories/` — `ICategoryRule` + one implementation per category (§4.2), aggregated by `CategoryClassifier`.
+- `Storage/` — `IStockRepository`/`StockStore` (JSON-backed quantities) and `ITemplateRepository`/`TemplateStore` (fixed catalog + templates registered via `ADD_TEMPLATE`, persisted in `data/templates.json`), plus `RepoPaths` (locates the repo root by walking up to `DroneFactory.sln`, so paths resolve the same under `dotnet run`, `dotnet test`, or a published binary).
 - `Assembly/` — `AssemblyPlanner`, which generates the internal `GET_OUT_STOCK`/`INSTALL`/`ASSEMBLE`/`FINISHED` sequence for one drone.
-- `Commands/` — `ArgsParser` (quantified drone list parsing, §3.1) and `InstructionHandler` (one method per instruction, pure logic returning output lines — no `Console` calls, so it's testable directly). `Program.cs` is just the REPL loop + dispatch switch on top of `InstructionHandler`.
+- `Commands/` — `ArgsParser` (quantified drone list parsing, §3.1) and `InstructionHandler` (one method per instruction, pure logic returning output lines — no `Console` calls, so it's testable directly).
+  - `Commands/Instructions/` — `IInstruction` + one thin adapter class per instruction, delegating to `InstructionHandler`; `InstructionRegistry` indexes them by name for table-driven dispatch (see Command pattern in `docs/DESIGN_PATTERNS.md`).
+
+## REST API and front-end
+
+`src/DroneFactory` is an ASP.NET Core minimal API (`Microsoft.NET.Sdk.Web`), not a console REPL — see `docs/HYPOTHESES.md` ("Transport de l'API") for why. `Program.cs` wires up DI (repositories, `InstructionHandler`, `InstructionRegistry`) and exposes one route per user instruction, all delegating through `InstructionRegistry`:
+
+- `GET /api/stocks`, `POST /api/needed-stocks`, `POST /api/instructions`, `POST /api/verify`, `POST /api/produce`, `POST /api/templates` (`ADD_TEMPLATE`) — body `{ "args": "..." }` for POST routes, response `{ "lines": [...] }`.
+- `GET /api/templates` — read-only convenience for the front-end (lists templates with their derived categories); not one of the subject's instructions.
+
+It also serves static files from the **repository root** (not `wwwroot`), so `index.html` at the repo root is served at `/` with no CORS needed (same origin). `index.html` is a single self-contained file (Tailwind CDN + Ionicons CDN + vanilla JS) — one card per instruction, calling the routes above directly.
+
+Run with `dotnet run --project src/DroneFactory`, then open the printed `http://localhost:PORT`.
 
 ## Data / persistence
 
