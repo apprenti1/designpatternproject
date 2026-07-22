@@ -4,115 +4,141 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Drone Factory</title>
+<script>
+  // Applied before first paint to avoid a flash of the wrong theme.
+  if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+    document.documentElement.classList.add("dark");
+  }
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: "class" };</script>
 <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors">
 <div class="max-w-5xl mx-auto px-4 py-10">
 
-  <header class="flex items-center gap-3 mb-8">
-    <ion-icon name="rocket-outline" class="text-3xl text-sky-400"></ion-icon>
-    <h1 class="text-2xl font-bold tracking-tight">Drone Factory</h1>
+  <header class="flex items-center justify-between gap-3 mb-2">
+    <div class="flex items-center gap-3">
+      <ion-icon name="rocket-outline" class="text-3xl text-sky-500 dark:text-sky-400"></ion-icon>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Drone Factory</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-500">API REST — instructions du sujet §3/§4</p>
+      </div>
+    </div>
+    <button onclick="toggleTheme()" title="Basculer clair / sombre"
+      class="p-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+      <ion-icon id="theme-icon" name="moon-outline" class="text-xl"></ion-icon>
+    </button>
   </header>
+
+  <p class="text-xs text-slate-400 dark:text-slate-600 mb-8">
+    Cliquez un exemple pour le remplir dans le champ, ou tapez le vôtre — cf. <code>readme.md</code> §3.1 pour le format <code>ARGS</code>.
+  </p>
 
   <section class="grid gap-6 md:grid-cols-2">
 
     <!-- STOCKS -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold flex items-center gap-2">
           <ion-icon name="file-tray-stacked-outline"></ion-icon> STOCKS
         </h2>
-        <button onclick="runStocks()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+        <button onclick="runStocks()" class="btn-primary">
           <ion-icon name="refresh-outline"></ion-icon> Rafraîchir
         </button>
       </div>
-      <pre id="out-stocks" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <pre id="out-stocks" class="out"></pre>
     </div>
 
     <!-- NEEDED_STOCKS -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="list-outline"></ion-icon> NEEDED_STOCKS
       </h2>
-      <div class="flex gap-2 mb-3">
-        <input id="args-needed" type="text" placeholder="A Drone1, B Drone2"
-          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
-        <button onclick="runNeededStocks()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <ion-icon name="send-outline"></ion-icon>
-        </button>
+      <div class="flex gap-2 mb-2">
+        <input id="args-needed" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <button onclick="runNeededStocks()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
       </div>
-      <pre id="out-needed" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <div class="chips" data-target="args-needed" data-run="runNeededStocks">
+        <button class="chip" data-value="1 DXF-1">1 DXF-1</button>
+        <button class="chip" data-value="2 DXF-1, 1 RDL-1">2 DXF-1, 1 RDL-1</button>
+      </div>
+      <pre id="out-needed" class="out"></pre>
     </div>
 
     <!-- INSTRUCTIONS -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="construct-outline"></ion-icon> INSTRUCTIONS
       </h2>
-      <div class="flex gap-2 mb-3">
-        <input id="args-instructions" type="text" placeholder="A Drone1, B Drone2"
-          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
-        <button onclick="runInstructions()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <ion-icon name="send-outline"></ion-icon>
-        </button>
+      <div class="flex gap-2 mb-2">
+        <input id="args-instructions" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <button onclick="runInstructions()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
       </div>
-      <pre id="out-instructions" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <div class="chips" data-target="args-instructions" data-run="runInstructions">
+        <button class="chip" data-value="1 DXF-1">1 DXF-1</button>
+        <button class="chip" data-value="1 WDS-1">1 WDS-1</button>
+      </div>
+      <pre id="out-instructions" class="out"></pre>
     </div>
 
     <!-- VERIFY -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="checkmark-circle-outline"></ion-icon> VERIFY
       </h2>
-      <div class="flex gap-2 mb-3">
-        <input id="args-verify" type="text" placeholder="A Drone1, B Drone2"
-          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
-        <button onclick="runVerify()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <ion-icon name="send-outline"></ion-icon>
-        </button>
+      <div class="flex gap-2 mb-2">
+        <input id="args-verify" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <button onclick="runVerify()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
       </div>
-      <pre id="out-verify" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <div class="chips" data-target="args-verify" data-run="runVerify">
+        <button class="chip" data-value="1 DXF-1">1 DXF-1 (valide)</button>
+        <button class="chip" data-value="1 DXF-1, 1 Cat">1 DXF-1, 1 Cat (erreur, cf. readme §7.2)</button>
+      </div>
+      <pre id="out-verify" class="out"></pre>
     </div>
 
     <!-- PRODUCE -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="hammer-outline"></ion-icon> PRODUCE
       </h2>
-      <div class="flex gap-2 mb-3">
-        <input id="args-produce" type="text" placeholder="A Drone1, B Drone2"
-          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
-        <button onclick="runProduce()" class="bg-emerald-600 hover:bg-emerald-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <ion-icon name="checkmark-done-outline"></ion-icon> Produire
-        </button>
+      <div class="flex gap-2 mb-2">
+        <input id="args-produce" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <button onclick="runProduce()" class="btn-success"><ion-icon name="checkmark-done-outline"></ion-icon> Produire</button>
       </div>
-      <pre id="out-produce" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <div class="chips" data-target="args-produce" data-run="runProduce">
+        <button class="chip" data-value="1 DXF-1">1 DXF-1 (stock suffisant)</button>
+        <button class="chip" data-value="50 RDL-1">50 RDL-1 (stock insuffisant)</button>
+      </div>
+      <pre id="out-produce" class="out"></pre>
     </div>
 
     <!-- ADD_TEMPLATE -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="add-circle-outline"></ion-icon> ADD_TEMPLATE
       </h2>
-      <div class="flex gap-2 mb-3">
-        <input id="args-add-template" type="text" placeholder="MyDrone, Hull_HF1, Core_C3D1, Generator_GF1, Move_MF1, Processor_P3D1, System_S3D1"
-          class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-sky-500" />
-        <button onclick="runAddTemplate()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <ion-icon name="send-outline"></ion-icon>
-        </button>
+      <div class="flex gap-2 mb-2">
+        <input id="args-add-template" type="text" placeholder="TEMPLATE_NAME, Piece1, ..., PieceN" class="field" />
+        <button onclick="runAddTemplate()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
       </div>
-      <pre id="out-add-template" class="text-sm text-slate-300 whitespace-pre-wrap min-h-[3rem]"></pre>
+      <div class="chips" data-target="args-add-template" data-run="runAddTemplate">
+        <button class="chip" data-value="DemoDrone, Hull_HF1, Core_C3D1, Generator_GF1, Move_MF1, Processor_P3D1, System_S3D1">exemple valide (Aérien)</button>
+        <button class="chip" data-value="BadDrone, Hull_HF1, Core_CG1, Generator_GF1, Move_MS1, Processor_PG1, System_SG1">exemple invalide (aucune catégorie)</button>
+      </div>
+      <pre id="out-add-template" class="out"></pre>
     </div>
 
     <!-- Templates & categories (API-only convenience, not a subject instruction) -->
-    <div class="bg-slate-900 rounded-xl p-5 border border-slate-800 md:col-span-2">
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold flex items-center gap-2">
           <ion-icon name="albums-outline"></ion-icon> Templates &amp; catégories
+          <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(commodité API, pas une instruction du sujet)</span>
         </h2>
-        <button onclick="runTemplates()" class="bg-sky-600 hover:bg-sky-500 text-sm px-3 py-1.5 rounded-lg flex items-center gap-1">
+        <button onclick="runTemplates()" class="btn-primary">
           <ion-icon name="refresh-outline"></ion-icon> Rafraîchir
         </button>
       </div>
@@ -120,9 +146,106 @@
     </div>
 
   </section>
+
+  <footer class="text-xs text-slate-400 dark:text-slate-600 mt-10 text-center">
+    Voir <code>docs/DESIGN_PATTERNS.md</code> et <code>docs/HYPOTHESES.md</code> pour le détail des choix d'implémentation.
+  </footer>
 </div>
 
+<style>
+  /* Plain CSS (not processed by the Tailwind Play CDN) so it works regardless of CDN
+     availability/version — colors match the Tailwind slate/sky/emerald palette. */
+  .field {
+    flex: 1;
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .dark .field {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+  .field:focus { border-color: #0ea5e9; }
+  .btn-primary {
+    background-color: #0284c7;
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background-color: #0ea5e9; }
+  .btn-success {
+    background-color: #059669;
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+  }
+  .btn-success:hover { background-color: #10b981; }
+  .out {
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    min-height: 3rem;
+    font-family: ui-monospace, monospace;
+    color: #334155;
+  }
+  .dark .out { color: #cbd5e1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.75rem; }
+  .chip {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+  }
+  .dark .chip {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+  }
+  .chip:hover { border-color: #0ea5e9; color: #0284c7; }
+  .dark .chip:hover { color: #38bdf8; }
+</style>
+
 <script>
+// ---- Theme toggle ----
+function updateThemeIcon() {
+  const dark = document.documentElement.classList.contains("dark");
+  document.getElementById("theme-icon").setAttribute("name", dark ? "sunny-outline" : "moon-outline");
+}
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle("dark");
+  localStorage.theme = dark ? "dark" : "light";
+  updateThemeIcon();
+}
+updateThemeIcon();
+
+// ---- Example chips: click to fill (and run) an input ----
+document.querySelectorAll(".chips").forEach((group) => {
+  const targetId = group.dataset.target;
+  const runFn = group.dataset.run;
+  group.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      document.getElementById(targetId).value = chip.dataset.value;
+      window[runFn]();
+    });
+  });
+});
+
+// ---- API calls ----
 async function callApi(path, args) {
   const options = args === undefined
     ? { method: "GET" }
@@ -135,8 +258,29 @@ async function callApi(path, args) {
   return data?.lines ?? [];
 }
 
+// ---- Color-coded output rendering ----
+function classifyLine(line) {
+  if (line.startsWith("ERROR")) return "text-red-600 dark:text-red-400 font-medium";
+  if (line === "AVAILABLE" || line === "STOCK_UPDATED" || line.startsWith("TEMPLATE_ADDED") || line.startsWith("COMPLETED")) {
+    return "text-emerald-600 dark:text-emerald-400 font-medium";
+  }
+  if (line === "UNAVAILABLE") return "text-amber-600 dark:text-amber-400 font-medium";
+  if (line.startsWith("PRODUCING") || line.startsWith("FINISHED")) return "text-sky-600 dark:text-sky-400 font-semibold";
+  if (line.startsWith("GET_OUT_STOCK")) return "text-slate-500 dark:text-slate-500";
+  if (line.startsWith("ASSEMBLE") || line.startsWith("INSTALL")) return "text-violet-600 dark:text-violet-400";
+  return "";
+}
+
 function render(id, lines) {
-  document.getElementById(id).textContent = lines.join("\n");
+  const pre = document.getElementById(id);
+  pre.innerHTML = "";
+  for (const line of lines) {
+    const span = document.createElement("span");
+    span.className = classifyLine(line);
+    span.textContent = line;
+    pre.appendChild(span);
+    pre.appendChild(document.createTextNode("\n"));
+  }
 }
 
 async function runStocks() {
@@ -161,6 +305,7 @@ async function runVerify() {
 async function runProduce() {
   const args = document.getElementById("args-produce").value;
   render("out-produce", await callApi("/api/produce", args));
+  runStocks();
 }
 
 async function runAddTemplate() {
@@ -177,12 +322,21 @@ async function runTemplates() {
   container.innerHTML = "";
   for (const t of templates) {
     const card = document.createElement("div");
-    card.className = "bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm";
-    card.innerHTML = `
-      <div class="font-semibold text-sky-400">${t.name}</div>
-      <div class="text-xs text-slate-400 mb-1">${t.categories.join(", ") || "—"}</div>
-      <div class="text-slate-300">${t.hull}, ${t.mainModule}{${t.system}}, ${t.generator}, ${t.movementModule}, ${t.controlModule}</div>
-    `;
+    card.className = "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm";
+
+    const name = document.createElement("div");
+    name.className = "font-semibold text-sky-600 dark:text-sky-400";
+    name.textContent = t.name;
+
+    const categories = document.createElement("div");
+    categories.className = "text-xs text-slate-500 dark:text-slate-400 mb-1";
+    categories.textContent = t.categories.join(", ") || "—";
+
+    const parts = document.createElement("div");
+    parts.className = "text-slate-600 dark:text-slate-300 text-xs";
+    parts.textContent = `${t.hull}, ${t.mainModule}{${t.system}}, ${t.generator}, ${t.movementModule}, ${t.controlModule}`;
+
+    card.append(name, categories, parts);
     container.appendChild(card);
   }
 }
