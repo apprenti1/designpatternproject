@@ -4,7 +4,10 @@ namespace DroneFactory.Storage;
 
 /// <summary>
 /// Reads and persists item quantities (drones and pieces) as JSON.
-/// The live file (stock.json) is seeded from stock.seed.json on first use.
+/// The live file (<c>{fileBaseName}.json</c>) is seeded from <c>{fileBaseName}.seed.json</c> on
+/// first use. <paramref name="fileBaseName"/> defaults to "stock" (the original single-factory
+/// behavior); the multi-factory module (readme.md §5.2.4) gives each extra factory its own base
+/// name (e.g. "stock.usine2") so factories never share a live file.
 /// </summary>
 public sealed class StockStore : IStockRepository
 {
@@ -12,9 +15,14 @@ public sealed class StockStore : IStockRepository
     private readonly Dictionary<string, int> _quantities;
 
     public StockStore(string dataDirectory)
+        : this(dataDirectory, "stock")
     {
-        var seedPath = Path.Combine(dataDirectory, "stock.seed.json");
-        _livePath = Path.Combine(dataDirectory, "stock.json");
+    }
+
+    public StockStore(string dataDirectory, string fileBaseName)
+    {
+        var seedPath = Path.Combine(dataDirectory, $"{fileBaseName}.seed.json");
+        _livePath = Path.Combine(dataDirectory, $"{fileBaseName}.json");
 
         if (!File.Exists(_livePath))
         {
