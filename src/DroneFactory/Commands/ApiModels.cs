@@ -10,7 +10,7 @@ public sealed record TemplateInfo(
     string[] Categories,
     string Hull,
     string MainModule,
-    string Generator,
-    string MovementModule,
+    string[] Generators,
+    string[] MovementModules,
     string ControlModule,
     string System);
