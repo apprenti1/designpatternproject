@@ -1,35 +1,74 @@
 using DroneFactory.Assembly;
 using DroneFactory.Domain;
-using DroneFactory.Domain.Categories;
 using DroneFactory.Storage;
 
 namespace DroneFactory.Commands;
 
 /// <summary>
-/// Pure business logic for the user instructions (readme.md §3.2, §4.3). Each method
+/// Pure business logic for the user instructions (readme.md §3.2, §4.3, §5). Each method
 /// returns the output lines to print, so it can be exercised in tests without touching Console.
 /// </summary>
 public sealed class InstructionHandler
 {
-    private readonly IStockRepository _stock;
+    private readonly IFactoryRegistry _factories;
     private readonly ITemplateRepository _templates;
+    private readonly IOrderRepository _orders;
 
+    /// <summary>
+    /// Legacy single-factory constructor, kept so the phase 1/2 test suite (and any caller that
+    /// doesn't care about multi-factory) doesn't need to know about <see cref="IFactoryRegistry"/>.
+    /// Wraps <paramref name="stock"/> as the sole factory "Usine1" — with a single factory, every
+    /// IN-qualified code path resolves it implicitly and no ambiguity error can ever trigger.
+    /// </summary>
     public InstructionHandler(IStockRepository stock, ITemplateRepository templates)
+        : this(new FactoryStore(new Dictionary<string, IStockRepository> { ["Usine1"] = stock }), templates, new OrderStore())
     {
-        _stock = stock;
-        _templates = templates;
     }
 
-    public IEnumerable<string> Stocks()
+    public InstructionHandler(IFactoryRegistry factories, ITemplateRepository templates, IOrderRepository orders)
     {
+        _factories = factories;
+        _templates = templates;
+        _orders = orders;
+    }
+
+    public IEnumerable<string> Stocks() => Stocks(string.Empty);
+
+    public IEnumerable<string> Stocks(string args)
+    {
+        var (_, factoryName) = FactoryQualifier.Extract(args);
+
+        if (factoryName is not null)
+        {
+            if (!_factories.Exists(factoryName))
+            {
+                yield return $"ERROR Unknown factory `{factoryName}`";
+                yield break;
+            }
+
+            var stock = _factories.GetStock(factoryName);
+            foreach (var drone in _templates.All)
+            {
+                yield return $"{stock.GetQuantity(drone.Name)} {drone.Name}";
+            }
+
+            foreach (var piece in PieceCatalog.All)
+            {
+                yield return $"{stock.GetQuantity(piece.Name)} {piece.Name}";
+            }
+
+            yield break;
+        }
+
+        // No IN precision: aggregate across every factory (readme.md §5.2.4).
         foreach (var drone in _templates.All)
         {
-            yield return $"{_stock.GetQuantity(drone.Name)} {drone.Name}";
+            yield return $"{_factories.TotalQuantity(drone.Name)} {drone.Name}";
         }
 
         foreach (var piece in PieceCatalog.All)
         {
-            yield return $"{_stock.GetQuantity(piece.Name)} {piece.Name}";
+            yield return $"{_factories.TotalQuantity(piece.Name)} {piece.Name}";
         }
     }
 
@@ -43,15 +82,21 @@ public sealed class InstructionHandler
 
         var total = new Dictionary<string, int>();
 
-        foreach (var (droneName, quantity) in order)
+        foreach (var (droneName, quantity, drone) in order)
         {
-            var drone = _templates.Find(droneName)!;
             yield return $"{quantity} {droneName} :";
 
+            var perDrone = new Dictionary<string, int>();
             foreach (var piece in drone.RequiredPieces)
             {
-                yield return $"{quantity} {piece}";
-                total[piece] = total.GetValueOrDefault(piece) + quantity;
+                perDrone[piece] = perDrone.GetValueOrDefault(piece) + 1;
+            }
+
+            foreach (var (piece, unitCount) in perDrone)
+            {
+                var lineQuantity = unitCount * quantity;
+                yield return $"{lineQuantity} {piece}";
+                total[piece] = total.GetValueOrDefault(piece) + lineQuantity;
             }
         }
 
@@ -70,9 +115,8 @@ public sealed class InstructionHandler
             yield break;
         }
 
-        foreach (var (droneName, quantity) in order)
+        foreach (var (_, quantity, drone) in order)
         {
-            var drone = _templates.Find(droneName)!;
             foreach (var line in AssemblyPlanner.BuildInstructions(drone, quantity))
             {
                 yield return line;
@@ -82,16 +126,190 @@ public sealed class InstructionHandler
 
     public IEnumerable<string> Verify(string args)
     {
-        if (!TryParseOrder(args, out var order, out var error))
+        var (rest, factoryName) = FactoryQualifier.Extract(args);
+
+        if (!TryParseOrder(rest, out var order, out var error))
         {
             yield return $"ERROR {error}";
             yield break;
         }
 
-        yield return _stock.HasAtLeast(AggregateNeededPieces(order)) ? "AVAILABLE" : "UNAVAILABLE";
+        var needed = AggregateNeededPieces(order);
+
+        if (!TryResolveFactory(factoryName, out var stock, out var factoryError))
+        {
+            yield return $"ERROR {factoryError}";
+            yield break;
+        }
+
+        yield return stock!.HasAtLeast(needed) ? "AVAILABLE" : "UNAVAILABLE";
     }
 
     public IEnumerable<string> Produce(string args)
+    {
+        var (rest, factoryName) = FactoryQualifier.Extract(args);
+
+        if (!TryParseOrder(rest, out var order, out var error))
+        {
+            yield return $"ERROR {error}";
+            yield break;
+        }
+
+        var needed = AggregateNeededPieces(order);
+
+        IStockRepository stock;
+        if (factoryName is not null)
+        {
+            if (!_factories.Exists(factoryName))
+            {
+                yield return $"ERROR Unknown factory `{factoryName}`";
+                yield break;
+            }
+
+            stock = _factories.GetStock(factoryName);
+        }
+        else if (_factories.Names.Count == 1)
+        {
+            stock = _factories.GetStock(_factories.Names[0]);
+        }
+        else
+        {
+            // Only PRODUCE's missing-factory error is stock-sufficiency-filtered per the
+            // readme.md §5.2.4 worked example; other instructions list every factory (see
+            // TryResolveFactory / docs/HYPOTHESES.md).
+            var candidates = _factories.Names.Where(f => _factories.GetStock(f).HasAtLeast(needed)).ToList();
+            if (candidates.Count == 0)
+            {
+                yield return "ERROR Insufficient stock to produce this order in any factory";
+                yield break;
+            }
+
+            yield return $"ERROR Missing target factory. Available factory for this instruction are {JoinWithAnd(candidates)}";
+            yield break;
+        }
+
+        if (!stock.HasAtLeast(needed))
+        {
+            yield return "ERROR Insufficient stock to produce this order";
+            yield break;
+        }
+
+        stock.Consume(needed);
+        foreach (var (droneName, quantity, _) in order)
+        {
+            stock.Add(droneName, quantity);
+        }
+
+        stock.Save();
+        yield return "STOCK_UPDATED";
+    }
+
+    public IEnumerable<string> Receive(string args)
+    {
+        var (rest, factoryName) = FactoryQualifier.Extract(args);
+
+        if (!ArgsParser.TryParse(rest, out var items, out var error))
+        {
+            yield return $"ERROR {error}";
+            yield break;
+        }
+
+        foreach (var (name, _) in items)
+        {
+            if (!IsKnownStockItem(name))
+            {
+                yield return $"ERROR `{name}` is not a recognized piece, system or drone";
+                yield break;
+            }
+        }
+
+        if (!TryResolveFactory(factoryName, out var stock, out var factoryError))
+        {
+            yield return $"ERROR {factoryError}";
+            yield break;
+        }
+
+        foreach (var (name, quantity) in items)
+        {
+            stock!.Add(name, quantity);
+        }
+
+        stock!.Save();
+        yield return "STOCK_UPDATED";
+    }
+
+    public IEnumerable<string> Transfer(string args)
+    {
+        if (string.IsNullOrWhiteSpace(args))
+        {
+            yield return "ERROR Missing arguments";
+            yield break;
+        }
+
+        var tokens = args.Split(',', 3, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length < 3)
+        {
+            yield return "ERROR Expected format 'TRANSFER Usine1, Usine2, ARGS'";
+            yield break;
+        }
+
+        var fromName = tokens[0];
+        var toName = tokens[1];
+
+        if (!_factories.Exists(fromName))
+        {
+            yield return $"ERROR Unknown factory `{fromName}`";
+            yield break;
+        }
+
+        if (!_factories.Exists(toName))
+        {
+            yield return $"ERROR Unknown factory `{toName}`";
+            yield break;
+        }
+
+        if (fromName == toName)
+        {
+            yield return "ERROR Source and destination factory must be different";
+            yield break;
+        }
+
+        if (!ArgsParser.TryParse(tokens[2], out var items, out var error))
+        {
+            yield return $"ERROR {error}";
+            yield break;
+        }
+
+        foreach (var (name, _) in items)
+        {
+            if (!IsKnownStockItem(name))
+            {
+                yield return $"ERROR `{name}` is not a recognized piece, system or drone";
+                yield break;
+            }
+        }
+
+        var from = _factories.GetStock(fromName);
+        var to = _factories.GetStock(toName);
+
+        if (!from.HasAtLeast(items))
+        {
+            yield return "ERROR Insufficient stock to transfer";
+            yield break;
+        }
+
+        from.Consume(items);
+        foreach (var (name, quantity) in items)
+        {
+            to.Add(name, quantity);
+        }
+
+        from.Save();
+        to.Save();
+        yield return "STOCK_UPDATED";
+    }
+
+    public IEnumerable<string> Order(string args)
     {
         if (!TryParseOrder(args, out var order, out var error))
         {
@@ -99,21 +317,98 @@ public sealed class InstructionHandler
             yield break;
         }
 
-        var needed = AggregateNeededPieces(order);
-        if (!_stock.HasAtLeast(needed))
+        var lines = new Dictionary<string, int>();
+        foreach (var (name, quantity, _) in order)
         {
-            yield return "ERROR Insufficient stock to produce this order";
+            lines[name] = lines.GetValueOrDefault(name) + quantity;
+        }
+
+        yield return _orders.Create(lines);
+    }
+
+    public IEnumerable<string> Send(string args)
+    {
+        var commaIndex = args.IndexOf(',');
+        if (commaIndex < 0)
+        {
+            yield return "ERROR Expected format 'SEND ORDERID, ARGS'";
             yield break;
         }
 
-        _stock.Consume(needed);
-        foreach (var (droneName, quantity) in order)
+        var orderId = args[..commaIndex].Trim();
+        var rest = args[(commaIndex + 1)..].Trim();
+
+        var order = _orders.Find(orderId);
+        if (order is null)
         {
-            _stock.Add(droneName, quantity);
+            yield return $"ERROR `{orderId}` is not a recognized order";
+            yield break;
         }
 
-        _stock.Save();
-        yield return "STOCK_UPDATED";
+        var (itemsArgs, factoryName) = FactoryQualifier.Extract(rest);
+
+        if (!ArgsParser.TryParse(itemsArgs, out var toSend, out var error))
+        {
+            yield return $"ERROR {error}";
+            yield break;
+        }
+
+        foreach (var (name, quantity) in toSend)
+        {
+            var remaining = order.Remaining.GetValueOrDefault(name);
+            if (quantity > remaining)
+            {
+                yield return $"ERROR Cannot send {quantity} {name}: only {remaining} remaining for `{orderId}`";
+                yield break;
+            }
+        }
+
+        if (!TryResolveFactory(factoryName, out var stock, out var factoryError))
+        {
+            yield return $"ERROR {factoryError}";
+            yield break;
+        }
+
+        if (!stock!.HasAtLeast(toSend))
+        {
+            yield return "ERROR Insufficient stock to send this order";
+            yield break;
+        }
+
+        stock.Consume(toSend);
+        stock.Save();
+
+        var newRemaining = new Dictionary<string, int>(order.Remaining);
+        foreach (var (name, quantity) in toSend)
+        {
+            var left = newRemaining[name] - quantity;
+            if (left <= 0)
+            {
+                newRemaining.Remove(name);
+            }
+            else
+            {
+                newRemaining[name] = left;
+            }
+        }
+
+        if (newRemaining.Count == 0)
+        {
+            _orders.Remove(orderId);
+            yield return $"COMPLETED {orderId}";
+            yield break;
+        }
+
+        _orders.UpdateRemaining(orderId, newRemaining);
+        yield return $"Remaining for {orderId} : {FormatArgs(newRemaining)}";
+    }
+
+    public IEnumerable<string> ListOrder()
+    {
+        foreach (var order in _orders.All)
+        {
+            yield return $"{order.Id}: {FormatArgs(order.Remaining)}";
+        }
     }
 
     public IEnumerable<string> AddTemplate(string args)
@@ -128,37 +423,65 @@ public sealed class InstructionHandler
         yield return $"TEMPLATE_ADDED {template!.Name}";
     }
 
-    private bool TryParseOrder(string args, out Dictionary<string, int> order, out string? error)
-    {
-        order = new Dictionary<string, int>();
-        error = null;
+    private static string FormatArgs(IReadOnlyDictionary<string, int> items)
+        => string.Join(", ", items.Select(kv => $"{kv.Value} {kv.Key}"));
 
-        if (!ArgsParser.TryParse(args, out var quantities, out var parseError))
+    private static string JoinWithAnd(IReadOnlyList<string> names)
+    {
+        if (names.Count == 0)
         {
-            error = parseError;
-            return false;
+            return string.Empty;
         }
 
-        foreach (var (name, quantity) in quantities)
+        if (names.Count == 1)
         {
-            if (_templates.Find(name) is null)
+            return names[0];
+        }
+
+        return string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1];
+    }
+
+    private bool TryResolveFactory(string? factoryName, out IStockRepository? stock, out string? error)
+    {
+        if (factoryName is not null)
+        {
+            if (!_factories.Exists(factoryName))
             {
-                error = $"`{name}` is not a recognized drone";
+                stock = null;
+                error = $"Unknown factory `{factoryName}`";
                 return false;
             }
 
-            order[name] = quantity;
+            stock = _factories.GetStock(factoryName);
+            error = null;
+            return true;
         }
 
-        return true;
+        if (_factories.Names.Count == 1)
+        {
+            stock = _factories.GetStock(_factories.Names[0]);
+            error = null;
+            return true;
+        }
+
+        stock = null;
+        error = $"Missing target factory. Available factory for this instruction are {JoinWithAnd(_factories.Names)}";
+        return false;
     }
 
-    private Dictionary<string, int> AggregateNeededPieces(Dictionary<string, int> order)
+    private bool IsKnownStockItem(string name)
+        => PieceCatalog.All.Any(p => p.Name == name)
+        || SystemCatalog.All.Any(s => s.Name == name)
+        || _templates.Find(name) is not null;
+
+    private bool TryParseOrder(string args, out List<(string Name, int Quantity, DroneTemplate Template)> order, out string? error)
+        => DroneOrderParser.TryParse(args, _templates, out order, out error);
+
+    private Dictionary<string, int> AggregateNeededPieces(List<(string Name, int Quantity, DroneTemplate Template)> order)
     {
         var needed = new Dictionary<string, int>();
-        foreach (var (droneName, quantity) in order)
+        foreach (var (_, quantity, drone) in order)
         {
-            var drone = _templates.Find(droneName)!;
             foreach (var piece in drone.RequiredPieces)
             {
                 needed[piece] = needed.GetValueOrDefault(piece) + quantity;
@@ -193,102 +516,6 @@ public sealed class InstructionHandler
             return false;
         }
 
-        string? hull = null, mainModule = null, generator = null, movementModule = null, controlModule = null, system = null;
-
-        foreach (var piece in tokens.Skip(1))
-        {
-            if (PieceCatalog.Hulls.Any(p => p.Name == piece))
-            {
-                if (!TrySetOnce(ref hull, piece, "hull", out error))
-                {
-                    return false;
-                }
-            }
-            else if (PieceCatalog.MainModules.Any(p => p.Name == piece))
-            {
-                if (!TrySetOnce(ref mainModule, piece, "main module", out error))
-                {
-                    return false;
-                }
-            }
-            else if (PieceCatalog.Generators.Any(p => p.Name == piece))
-            {
-                if (!TrySetOnce(ref generator, piece, "generator", out error))
-                {
-                    return false;
-                }
-            }
-            else if (PieceCatalog.MovementModules.Any(p => p.Name == piece))
-            {
-                if (!TrySetOnce(ref movementModule, piece, "movement module", out error))
-                {
-                    return false;
-                }
-            }
-            else if (PieceCatalog.ControlModules.Any(p => p.Name == piece))
-            {
-                if (!TrySetOnce(ref controlModule, piece, "control module", out error))
-                {
-                    return false;
-                }
-            }
-            else if (SystemCatalog.All.Any(s => s.Name == piece))
-            {
-                if (!TrySetOnce(ref system, piece, "system", out error))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                error = $"`{piece}` is not a recognized piece or system";
-                return false;
-            }
-        }
-
-        if (hull is null || mainModule is null || generator is null || movementModule is null || controlModule is null || system is null)
-        {
-            error = "A template requires exactly one hull, one main module, one generator, one movement module, one control module and one system";
-            return false;
-        }
-
-        var mainModuleTags = PieceCatalog.MainModules.First(p => p.Name == mainModule).Tags;
-        var controlModuleTags = PieceCatalog.ControlModules.First(p => p.Name == controlModule).Tags;
-        var systemTags = SystemCatalog.All.First(s => s.Name == system).Tags;
-
-        if (!systemTags.All(mainModuleTags.Contains))
-        {
-            error = $"Main module `{mainModule}` does not support system `{system}`";
-            return false;
-        }
-
-        if (!controlModuleTags.Intersect(systemTags).Any())
-        {
-            error = $"Control module `{controlModule}` is not compatible with system `{system}`";
-            return false;
-        }
-
-        var candidate = new DroneTemplate(name, hull, mainModule, generator, movementModule, controlModule, system);
-        if (CategoryClassifier.Classify(candidate) == DroneCategory.None)
-        {
-            error = "This combination of pieces does not belong to any drone category (Aérien, Marin, Terrestre, Submersible)";
-            return false;
-        }
-
-        template = candidate;
-        return true;
-    }
-
-    private bool TrySetOnce(ref string? slot, string piece, string slotLabel, out string? error)
-    {
-        if (slot is not null)
-        {
-            error = $"A template can only have one {slotLabel}, got both `{slot}` and `{piece}`";
-            return false;
-        }
-
-        slot = piece;
-        error = null;
-        return true;
+        return DroneTemplateBuilder.TryBuild(name, tokens.Skip(1), out template, out error);
     }
 }
