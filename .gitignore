@@ -1,8 +1,15 @@
 # Live application data, regenerated from data/stock.seed.json on first run
 data/stock.json
 
+# Live stock for the second demo factory (Usine2), regenerated from data/stock.usine2.seed.json
+data/stock.usine2.json
+
 # Custom drone templates registered at runtime via ADD_TEMPLATE
 data/templates.json
+
+# Backorders (ORDER/SEND) and the stock movement log (GET_MOVEMENTS), regenerated at runtime
+data/orders.json
+data/movements.json
 
 # Local-only documentation, not tracked in the repo
 readme.md
