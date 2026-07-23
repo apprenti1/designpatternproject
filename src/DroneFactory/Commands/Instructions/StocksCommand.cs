@@ -8,5 +8,5 @@ public sealed class StocksCommand : IInstruction
 
     public string Name => "STOCKS";
 
-    public IEnumerable<string> Execute(string args) => _handler.Stocks();
+    public IEnumerable<string> Execute(string args) => _handler.Stocks(args);
 }
