@@ -5,10 +5,12 @@ namespace DroneFactory.Assembly;
 /// <summary>
 /// Builds the internal assembly instruction sequence for one drone (readme.md §3.2.3),
 /// respecting the four ordering constraints: parts out of stock before use, only the
-/// generator may join the hull before the main module, the movement module joins only
+/// generator(s) may join the hull before the main module, the movement module(s) join only
 /// after the hull is already present, and systems are installed before their part is
-/// used in any assembly. See docs/HYPOTHESES.md for why this deviates from the (internally
-/// inconsistent) worked example in readme.md §7.1.
+/// used in any assembly. Generalized for §5.1.2 (up to 2 generators, up to 3 movement modules):
+/// each one folds into the running assembly in turn, incrementing the TMP counter. See
+/// docs/HYPOTHESES.md for why this deviates from the (internally inconsistent) worked example in
+/// readme.md §7.1, and for the GET_OUT_STOCK aggregation-by-piece decision below.
 /// </summary>
 public static class AssemblyPlanner
 {
@@ -16,25 +18,48 @@ public static class AssemblyPlanner
     {
         yield return $"PRODUCING {drone.Name}";
 
-        yield return $"GET_OUT_STOCK 1 {drone.Hull}";
-        yield return $"GET_OUT_STOCK 1 {drone.MainModule}";
-        yield return $"GET_OUT_STOCK 1 {drone.Generator}";
-        yield return $"GET_OUT_STOCK 1 {drone.MovementModule}";
-        yield return $"GET_OUT_STOCK 1 {drone.ControlModule}";
+        var pullOrder = new List<string> { drone.Hull, drone.MainModule };
+        pullOrder.AddRange(drone.Generators);
+        pullOrder.AddRange(drone.MovementModules);
+        pullOrder.Add(drone.ControlModule);
+
+        var pulled = new HashSet<string>();
+        foreach (var piece in pullOrder)
+        {
+            if (pulled.Add(piece))
+            {
+                yield return $"GET_OUT_STOCK {pullOrder.Count(p => p == piece)} {piece}";
+            }
+        }
 
         yield return $"INSTALL {drone.System} {drone.MainModule}";
 
-        // Only the generator may be mounted into the hull before the main module.
-        yield return $"ASSEMBLE TMP1 {drone.Hull} {drone.Generator}";
+        var counter = 0;
+        var current = drone.Hull;
+
+        // Only the generator(s) may be mounted into the hull before the main module.
+        foreach (var generator in drone.Generators)
+        {
+            counter++;
+            yield return $"ASSEMBLE TMP{counter} {current} {generator}";
+            current = $"TMP{counter}";
+        }
 
         // The main module (system already installed) joins next.
-        yield return $"ASSEMBLE TMP2 TMP1 {drone.MainModule}{{{drone.System}}}";
+        counter++;
+        yield return $"ASSEMBLE TMP{counter} {current} {drone.MainModule}{{{drone.System}}}";
+        current = $"TMP{counter}";
 
-        // The movement module is assembled only after the hull is already present.
-        yield return $"ASSEMBLE TMP3 TMP2 {drone.MovementModule}";
+        // The movement module(s) are assembled only after the hull is already present.
+        foreach (var movementModule in drone.MovementModules)
+        {
+            counter++;
+            yield return $"ASSEMBLE TMP{counter} {current} {movementModule}";
+            current = $"TMP{counter}";
+        }
 
         // Final assembly is left unnamed: it is a known drone template.
-        yield return $"ASSEMBLE TMP3 {drone.ControlModule}";
+        yield return $"ASSEMBLE {current} {drone.ControlModule}";
 
         yield return $"FINISHED {drone.Name}";
     }
