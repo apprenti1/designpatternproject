@@ -1,0 +1,23 @@
+{
+  "DXF-1": 0,
+  "RDL-1": 0,
+  "WDS-1": 0,
+  "DYM-1": 0,
+  "Hull_HG1": 3,
+  "Hull_HF1": 3,
+  "Hull_HS1": 3,
+  "Core_CG1": 3,
+  "Core_C3D1": 3,
+  "Generator_GG1": 3,
+  "Generator_GF1": 3,
+  "Generator_GS1": 3,
+  "Move_MF1": 3,
+  "Move_ML1": 3,
+  "Move_MS1": 3,
+  "Move_MM1": 3,
+  "Move_MU1": 3,
+  "Move_MS2": 3,
+  "Processor_PG1": 3,
+  "Processor_P3D1": 3,
+  "Processor_PU1": 3
+}
