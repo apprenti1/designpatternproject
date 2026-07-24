@@ -44,9 +44,14 @@
         <h2 class="font-semibold flex items-center gap-2">
           <ion-icon name="file-tray-stacked-outline"></ion-icon> STOCKS
         </h2>
-        <button onclick="runStocks()" class="btn-primary">
-          <ion-icon name="refresh-outline"></ion-icon> Rafraîchir
-        </button>
+        <div class="flex gap-2 items-center">
+          <select id="factory-stocks" class="factory-select field" onchange="runStocks()">
+            <option value="">Toutes les usines</option>
+          </select>
+          <button onclick="runStocks()" class="btn-primary">
+            <ion-icon name="refresh-outline"></ion-icon>
+          </button>
+        </div>
       </div>
       <pre id="out-stocks" class="out"></pre>
     </div>
@@ -90,11 +95,15 @@
       </h2>
       <div class="flex gap-2 mb-2">
         <input id="args-verify" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <select id="factory-verify" class="factory-select field" style="flex: 0 0 auto;">
+          <option value="">(usine ambiguë si &gt;1)</option>
+        </select>
         <button onclick="runVerify()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
       </div>
       <div class="chips" data-target="args-verify" data-run="runVerify">
         <button class="chip" data-value="1 DXF-1">1 DXF-1 (valide)</button>
         <button class="chip" data-value="1 DXF-1, 1 Cat">1 DXF-1, 1 Cat (erreur, cf. readme §7.2)</button>
+        <button class="chip" data-value="1 DXF-1 WITH 1 Generator_GF1">1 DXF-1 WITH 1 Generator_GF1 (modificateur §5.2.1)</button>
       </div>
       <pre id="out-verify" class="out"></pre>
     </div>
@@ -106,6 +115,9 @@
       </h2>
       <div class="flex gap-2 mb-2">
         <input id="args-produce" type="text" placeholder="A Drone1, B Drone2" class="field" />
+        <select id="factory-produce" class="factory-select field" style="flex: 0 0 auto;">
+          <option value="">(usine ambiguë si &gt;1)</option>
+        </select>
         <button onclick="runProduce()" class="btn-success"><ion-icon name="checkmark-done-outline"></ion-icon> Produire</button>
       </div>
       <div class="chips" data-target="args-produce" data-run="runProduce">
@@ -113,6 +125,94 @@
         <button class="chip" data-value="50 RDL-1">50 RDL-1 (stock insuffisant)</button>
       </div>
       <pre id="out-produce" class="out"></pre>
+    </div>
+
+    <!-- RECEIVE -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="download-outline"></ion-icon> RECEIVE
+        <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.1.1)</span>
+      </h2>
+      <div class="flex gap-2 mb-2">
+        <input id="args-receive" type="text" placeholder="A Piece1, B Piece2" class="field" />
+        <select id="factory-receive" class="factory-select field" style="flex: 0 0 auto;">
+          <option value="">(usine ambiguë si &gt;1)</option>
+        </select>
+        <button onclick="runReceive()" class="btn-success"><ion-icon name="add-outline"></ion-icon></button>
+      </div>
+      <div class="chips" data-target="args-receive" data-run="runReceive">
+        <button class="chip" data-value="10 Hull_HF1, 5 Generator_GF1">10 Hull_HF1, 5 Generator_GF1</button>
+        <button class="chip" data-value="3 Bogus_Piece">3 Bogus_Piece (erreur)</button>
+      </div>
+      <pre id="out-receive" class="out"></pre>
+    </div>
+
+    <!-- TRANSFER -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="swap-horizontal-outline"></ion-icon> TRANSFER
+        <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.4)</span>
+      </h2>
+      <div class="flex gap-2 mb-2">
+        <input id="args-transfer" type="text" placeholder="Usine1, Usine2, A Piece1" class="field" />
+        <button onclick="runTransfer()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
+      </div>
+      <div class="chips" data-target="args-transfer" data-run="runTransfer">
+        <button class="chip" data-value="Usine1, Usine2, 3 Hull_HF1">Usine1, Usine2, 3 Hull_HF1</button>
+      </div>
+      <pre id="out-transfer" class="out"></pre>
+    </div>
+
+    <!-- ORDER / SEND / LIST_ORDER -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="clipboard-outline"></ion-icon> ORDER / SEND / LIST_ORDER
+        <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.2)</span>
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <div class="flex gap-2 mb-2">
+            <input id="args-order" type="text" placeholder="A Drone1, B Drone2" class="field" />
+            <button onclick="runOrder()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
+          </div>
+          <div class="chips" data-target="args-order" data-run="runOrder">
+            <button class="chip" data-value="2 DXF-1">ORDER 2 DXF-1</button>
+          </div>
+          <pre id="out-order" class="out"></pre>
+        </div>
+        <div>
+          <div class="flex gap-2 mb-2">
+            <input id="args-send" type="text" placeholder="ORDERID, A Drone1" class="field" />
+            <button onclick="runSend()" class="btn-success"><ion-icon name="send-outline"></ion-icon></button>
+          </div>
+          <div class="chips" data-target="args-send" data-run="runSend">
+            <button class="chip" data-value="ORDER1, 1 DXF-1">SEND ORDER1, 1 DXF-1</button>
+          </div>
+          <pre id="out-send" class="out"></pre>
+        </div>
+      </div>
+      <div class="flex items-center justify-between mt-3 mb-2">
+        <span class="text-xs text-slate-400 dark:text-slate-600">Commandes en cours (LIST_ORDER)</span>
+        <button onclick="runListOrder()" class="btn-primary"><ion-icon name="refresh-outline"></ion-icon></button>
+      </div>
+      <pre id="out-list-order" class="out"></pre>
+    </div>
+
+    <!-- GET_MOVEMENTS -->
+    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
+      <h2 class="font-semibold flex items-center gap-2 mb-3">
+        <ion-icon name="time-outline"></ion-icon> GET_MOVEMENTS
+        <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.3 — décorateur, voir docs/DESIGN_PATTERNS.md)</span>
+      </h2>
+      <div class="flex gap-2 mb-2">
+        <input id="args-movements" type="text" placeholder="(vide = tout) ou Piece1, Piece2" class="field" />
+        <button onclick="runMovements()" class="btn-primary"><ion-icon name="send-outline"></ion-icon></button>
+      </div>
+      <div class="chips" data-target="args-movements" data-run="runMovements">
+        <button class="chip" data-value="">Tout l'historique</button>
+        <button class="chip" data-value="Hull_HF1">Filtré sur Hull_HF1</button>
+      </div>
+      <pre id="out-movements" class="out"></pre>
     </div>
 
     <!-- ADD_TEMPLATE -->
@@ -261,14 +361,34 @@ async function callApi(path, args) {
 // ---- Color-coded output rendering ----
 function classifyLine(line) {
   if (line.startsWith("ERROR")) return "text-red-600 dark:text-red-400 font-medium";
-  if (line === "AVAILABLE" || line === "STOCK_UPDATED" || line.startsWith("TEMPLATE_ADDED") || line.startsWith("COMPLETED")) {
+  if (line === "AVAILABLE" || line === "STOCK_UPDATED" || line.startsWith("TEMPLATE_ADDED")
+    || line.startsWith("COMPLETED") || /^ORDER\d+$/.test(line)) {
     return "text-emerald-600 dark:text-emerald-400 font-medium";
   }
-  if (line === "UNAVAILABLE") return "text-amber-600 dark:text-amber-400 font-medium";
+  if (line === "UNAVAILABLE" || line.startsWith("Remaining for")) return "text-amber-600 dark:text-amber-400 font-medium";
   if (line.startsWith("PRODUCING") || line.startsWith("FINISHED")) return "text-sky-600 dark:text-sky-400 font-semibold";
   if (line.startsWith("GET_OUT_STOCK")) return "text-slate-500 dark:text-slate-500";
   if (line.startsWith("ASSEMBLE") || line.startsWith("INSTALL")) return "text-violet-600 dark:text-violet-400";
   return "";
+}
+
+// ---- Factory ("Usine") selectors, shared across STOCKS/VERIFY/PRODUCE/RECEIVE ----
+function factorySuffix(selectId) {
+  const value = document.getElementById(selectId).value;
+  return value ? ` IN ${value}` : "";
+}
+
+async function loadFactories() {
+  const res = await fetch("/api/factories");
+  const names = await res.json().catch(() => []);
+  document.querySelectorAll(".factory-select").forEach((select) => {
+    for (const name of names) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      select.appendChild(option);
+    }
+  });
 }
 
 function render(id, lines) {
@@ -284,7 +404,9 @@ function render(id, lines) {
 }
 
 async function runStocks() {
-  render("out-stocks", await callApi("/api/stocks"));
+  const factory = document.getElementById("factory-stocks").value;
+  const path = factory ? `/api/stocks?inFactory=${encodeURIComponent(factory)}` : "/api/stocks";
+  render("out-stocks", await callApi(path));
 }
 
 async function runNeededStocks() {
@@ -298,14 +420,15 @@ async function runInstructions() {
 }
 
 async function runVerify() {
-  const args = document.getElementById("args-verify").value;
+  const args = document.getElementById("args-verify").value + factorySuffix("factory-verify");
   render("out-verify", await callApi("/api/verify", args));
 }
 
 async function runProduce() {
-  const args = document.getElementById("args-produce").value;
+  const args = document.getElementById("args-produce").value + factorySuffix("factory-produce");
   render("out-produce", await callApi("/api/produce", args));
   runStocks();
+  runMovements();
 }
 
 async function runAddTemplate() {
@@ -313,6 +436,44 @@ async function runAddTemplate() {
   render("out-add-template", await callApi("/api/templates", args));
   runTemplates();
   runStocks();
+}
+
+async function runReceive() {
+  const args = document.getElementById("args-receive").value + factorySuffix("factory-receive");
+  render("out-receive", await callApi("/api/receive", args));
+  runStocks();
+  runMovements();
+}
+
+async function runTransfer() {
+  const args = document.getElementById("args-transfer").value;
+  render("out-transfer", await callApi("/api/transfer", args));
+  runStocks();
+  runMovements();
+}
+
+async function runOrder() {
+  const args = document.getElementById("args-order").value;
+  render("out-order", await callApi("/api/orders", args));
+  runListOrder();
+}
+
+async function runSend() {
+  const args = document.getElementById("args-send").value;
+  render("out-send", await callApi("/api/orders/send", args));
+  runListOrder();
+  runStocks();
+  runMovements();
+}
+
+async function runListOrder() {
+  render("out-list-order", await callApi("/api/orders"));
+}
+
+async function runMovements() {
+  const args = document.getElementById("args-movements").value;
+  const path = args ? `/api/movements?args=${encodeURIComponent(args)}` : "/api/movements";
+  render("out-movements", await callApi(path));
 }
 
 async function runTemplates() {
@@ -334,15 +495,17 @@ async function runTemplates() {
 
     const parts = document.createElement("div");
     parts.className = "text-slate-600 dark:text-slate-300 text-xs";
-    parts.textContent = `${t.hull}, ${t.mainModule}{${t.system}}, ${t.generator}, ${t.movementModule}, ${t.controlModule}`;
+    parts.textContent = `${t.hull}, ${t.mainModule}{${t.system}}, ${t.generators.join("+")}, ${t.movementModules.join("+")}, ${t.controlModule}`;
 
     card.append(name, categories, parts);
     container.appendChild(card);
   }
 }
 
-runStocks();
+loadFactories().then(runStocks);
 runTemplates();
+runListOrder();
+runMovements();
 </script>
 </body>
 </html>
