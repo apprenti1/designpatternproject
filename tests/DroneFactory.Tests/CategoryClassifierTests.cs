@@ -31,7 +31,7 @@ public class CategoryClassifierTests
     {
         // Hull/generator/movement module/system combination satisfying none of the four rules:
         // no (S) hull, a movement module tagged only (S) (neither F, M nor L), and a (2D) system.
-        var template = new DroneTemplate("GhostDrone", "Hull_HF1", "Core_CG1", "Generator_GF1", "Move_MS1", "Processor_PG1", "System_SG1");
+        var template = new DroneTemplate("GhostDrone", "Hull_HF1", "Core_CG1", new[] { "Generator_GF1" }, new[] { "Move_MS1" }, "Processor_PG1", "System_SG1");
 
         Assert.Equal(DroneCategory.None, CategoryClassifier.Classify(template));
     }
