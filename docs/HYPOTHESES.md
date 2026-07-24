@@ -87,3 +87,108 @@ une erreur claire et précise") mais pas le format de succès.
 
 **Décision** : `TEMPLATE_ADDED {TEMPLATE_NAME}`, sur le même principe que `STOCK_UPDATED` pour
 `PRODUCE`.
+
+## Générateurs et modules de déplacement multiples (§5.1.2)
+
+Le sujet autorise désormais jusqu'à 3 modules de déplacement et 2 générateurs, avec la règle
+« ≥2 modules de déplacement ⇒ 2 générateurs obligatoires ». Plusieurs points restaient à trancher :
+
+- **Catégorisation avec plusieurs pièces du même type** : les règles §4.2 parlent d'« un module de
+  déplacement (X) ». **Décision** : lu comme "au moins un" (ANY) pour Aérien/Marin/Terrestre. Pour
+  Submersible ("toutes les pièces sont de type (S)"), lu comme ALL — tous les générateurs et tous
+  les modules de déplacement doivent porter le tag (S), en plus de la coque. Implémenté dans
+  `Domain/Categories/CategoryRules.cs`.
+- **`GET_OUT_STOCK` avec pièces dupliquées** : si un template a deux fois `Generator_GF1`, la sortie
+  regroupe en une seule ligne `GET_OUT_STOCK 2 Generator_GF1` plutôt que deux lignes de quantité 1
+  chacune — plus lisible et cohérent avec « sortir A exemplaires de la pièce Piece1 » (§3.2.3).
+  Implémenté dans `Assembly/AssemblyPlanner.cs`. Même principe pour `NEEDED_STOCKS` (regroupement
+  par pièce avant multiplication par la quantité commandée).
+- **Ordre d'assemblage** : chaque générateur rejoint la coque à son tour (TMP1, TMP2, …) avant le
+  module principal ; chaque module de déplacement rejoint ensuite l'assemblage à son tour — les
+  quatre contraintes du §3.2.3 restent respectées quel que soit le nombre de pièces.
+- La classification de pièces en slots (coque/module principal/générateurs/modules de
+  déplacement/module de contrôle/système), utilisée par `ADD_TEMPLATE`, est désormais partagée avec
+  la résolution des modificateurs de drone (§5.2.1, voir plus bas) via `Domain/DroneTemplateBuilder.cs`,
+  pour ne pas dupliquer ces règles à deux endroits.
+
+## RECEIVE (§5.1.1)
+
+Le sujet ne précise ni la validation des éléments reçus, ni le format de succès.
+
+**Décision** : `RECEIVE ARGS` accepte toute pièce (`PieceCatalog`), système (`SystemCatalog`) ou nom
+de drone/template connu ; un élément inconnu renvoie une `ERROR` claire (cohérent avec la rigueur du
+reste du système plutôt que d'accepter silencieusement n'importe quel nom). Succès :
+`STOCK_UPDATED`, même convention que `PRODUCE`/`TRANSFER`.
+
+## Modificateurs de drone WITH/WITHOUT/REPLACE (§5.2.1)
+
+Plusieurs points d'interprétation :
+
+- **`REPLACE B Piece1, C Piece2`** : lu comme une paire (retirer B exemplaires de Piece1, ajouter C
+  exemplaires de Piece2), pas deux opérations indépendantes — cohérent avec l'exemple composé du
+  sujet et avec la phrase « remplacer B exemplaires de Piece1 par C exemplaire de Piece2 ». Une liste
+  `REPLACE` avec plus de deux entrées est donc lue comme plusieurs paires successives.
+- **Ordre d'application** : les modificateurs (WITH/WITHOUT/REPLACE, éventuellement plusieurs sur la
+  même entrée) sont appliqués dans l'ordre où ils apparaissent dans le texte, sur le sac de pièces du
+  template de base (`DroneTemplate.RequiredPieces`, sans le système).
+- **Validation du résultat** : une fois les modificateurs appliqués, le sac de pièces obtenu est
+  reclassé en slots et revalidé exactement comme pour `ADD_TEMPLATE` (mêmes règles de compatibilité
+  système/module principal/module de contrôle, mêmes règles de construction §5.1.2, même règle de
+  catégorie) via `DroneTemplateBuilder.TryBuild` — un modificateur qui casse la structure du drone
+  (ex : retirer la seule coque sans la remplacer) est donc rejeté avec une `ERROR` claire.
+  Implémenté dans `Commands/DroneOrderParser.cs`.
+- **Détection du mode `;`** : le séparateur devient `;` dès qu'un mot-clé WITH/WITHOUT/REPLACE ou un
+  `;` apparaît dans `ARGS` ; sinon l'ancien format `,` (avec sommation des doublons, §3.1) reste
+  utilisé tel quel, sans passer par la logique de modificateurs.
+- **Pas de fusion par nom en mode `;`** : deux entrées du même drone dans une liste `;` ne sont pas
+  sommées (contrairement au mode `,`), car elles peuvent porter des modificateurs différents et donc
+  représenter des variantes différentes du même drone.
+- Le drone modifié reste crédité/consommé en stock sous le nom du drone de base (pas de nom de
+  variante distinct) — le sujet ne prévoit pas de mécanisme de nommage pour les drones modifiés.
+
+## Gestion de commandes ORDER/SEND/LIST_ORDER (§5.2.2) — portée
+
+`ORDER`/`SEND`/`LIST_ORDER` restent volontairement **globaux** (non rattachés à une usine précise) :
+le sujet ne mentionne pas `IN` pour `ORDER`/`LIST_ORDER`, et une commande client n'a pas de raison
+d'être liée à une usine de production particulière. `SEND`, en revanche, sort réellement du stock
+(« il faudra ensuite envoyer (sortir du stock) ») donc accepte la précision `IN Usine1` comme les
+autres instructions impactant le stock (§5.2.4), avec la même règle d'ambiguïté que `RECEIVE`/`VERIFY`
+si plusieurs usines existent et qu'aucune n'est précisée.
+
+## Traçabilité des flux GET_MOVEMENTS (§5.2.3)
+
+Le sujet dit que l'instruction « renverra l'intégralité des instructions ayant eu un impact sur le
+stock ». **Décision** : chaque ligne de sortie reproduit l'instruction utilisateur telle qu'exécutée
+(`{INSTRUCTION} {ARGS}`, ex. `RECEIVE 5 Hull_HF1`), dans l'ordre chronologique. Seules les
+instructions qui modifient effectivement le stock sont journalisées : `RECEIVE`, `PRODUCE`, `SEND`,
+`TRANSFER` — pas `ORDER` (qui ne fait que réserver), ni les instructions de lecture. Une instruction
+qui échoue (sortie commençant par `ERROR`) n'est pas journalisée. `ARGS` sur `GET_MOVEMENTS` est une
+liste de noms d'éléments (pas nécessairement quantifiée, malgré la convention générale ARGS du
+§3.1) — les deux formats (`Piece1` ou `2 Piece1`) sont acceptés en pratique. Implémenté via le pattern
+Decorator (`LoggingInstruction`, voir `docs/DESIGN_PATTERNS.md`) plutôt que dans `InstructionHandler`,
+pour ne pas mélanger la logique métier et la journalisation.
+
+## Multi-usines TRANSFER/IN (§5.2.4) — portée et messages
+
+- **Portée** : la précision `IN Usine1` et l'agrégation multi-usines couvrent le **stock**
+  (`STOCKS`, `RECEIVE`, `PRODUCE`, `VERIFY`, `SEND`, `TRANSFER`). Les **templates** restent globaux
+  (partagés entre toutes les usines) — le sujet se concentre sur le stock dans son exemple détaillé
+  (§5.2.4 ne donne un exemple que pour `PRODUCE`/`GET_STOCKS`), et dupliquer les templates par usine
+  aurait démesurément alourdi ce module par rapport à sa description. De même, `ORDER`/`LIST_ORDER`
+  restent globaux (voir section précédente).
+- **Ensemble d'usines** : fixé au démarrage (`Program.cs`), deux usines de démonstration `Usine1`
+  (stock historique, `data/stock.seed.json`) et `Usine2` (`data/stock.usine2.seed.json`) — le sujet
+  ne décrit pas d'instruction de création d'usine.
+- **Message d'usine manquante** : reproduit littéralement l'exemple du sujet pour `PRODUCE`
+  (`ERROR Missing target factory. Available factory for this instruction are Usine1 and Usine3`),
+  en ne listant que les usines dont le stock est suffisant pour la commande. Si aucune usine ne
+  suffit, `ERROR Insufficient stock to produce this order in any factory` (le sujet ne couvre pas ce
+  cas). Pour les autres instructions (`RECEIVE`, `VERIFY`, `SEND`), dont la "validité" ne se limite
+  pas à une question de stock suffisant au même sens, le message liste **toutes** les usines
+  disponibles sans filtrage.
+- **`STOCKS` sans `IN`** : agrège les quantités de toutes les usines (« renvoyant alors l'intégralité
+  du stock de toutes les usines confondues », §5.2.4). Avec une seule usine (tests, constructeur
+  historique d'`InstructionHandler`), la précision `IN` n'est jamais nécessaire — aucune ambiguïté
+  ne peut survenir avec un seul candidat.
+- **Sortie de succès de `TRANSFER`** : non spécifiée par le sujet — `STOCK_UPDATED`, même convention
+  que `PRODUCE`/`RECEIVE`.
