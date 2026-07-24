@@ -16,13 +16,14 @@
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors">
+<div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
 <div class="max-w-5xl mx-auto px-4 py-10">
 
   <header class="flex items-center justify-between gap-3 mb-2">
     <div class="flex items-center gap-3">
-      <ion-icon name="rocket-outline" class="text-3xl text-sky-500 dark:text-sky-400"></ion-icon>
+      <ion-icon name="rocket-outline" class="text-3xl text-sky-500 dark:text-sky-400 rocket-float"></ion-icon>
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Drone Factory</h1>
+        <h1 class="text-2xl font-bold tracking-tight brand-title">Drone Factory</h1>
         <p class="text-xs text-slate-500 dark:text-slate-500">API REST — instructions du sujet §3/§4</p>
       </div>
     </div>
@@ -39,7 +40,7 @@
   <section class="grid gap-6 md:grid-cols-2">
 
     <!-- STOCKS -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold flex items-center gap-2">
           <ion-icon name="file-tray-stacked-outline"></ion-icon> STOCKS
@@ -57,7 +58,7 @@
     </div>
 
     <!-- NEEDED_STOCKS -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="list-outline"></ion-icon> NEEDED_STOCKS
       </h2>
@@ -73,7 +74,7 @@
     </div>
 
     <!-- INSTRUCTIONS -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="construct-outline"></ion-icon> INSTRUCTIONS
       </h2>
@@ -89,7 +90,7 @@
     </div>
 
     <!-- VERIFY -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="checkmark-circle-outline"></ion-icon> VERIFY
       </h2>
@@ -109,7 +110,7 @@
     </div>
 
     <!-- PRODUCE -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="hammer-outline"></ion-icon> PRODUCE
       </h2>
@@ -128,7 +129,7 @@
     </div>
 
     <!-- RECEIVE -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="download-outline"></ion-icon> RECEIVE
         <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.1.1)</span>
@@ -148,7 +149,7 @@
     </div>
 
     <!-- TRANSFER -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="swap-horizontal-outline"></ion-icon> TRANSFER
         <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.4)</span>
@@ -164,7 +165,7 @@
     </div>
 
     <!-- ORDER / SEND / LIST_ORDER -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
+    <div class="card md:col-span-2">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="clipboard-outline"></ion-icon> ORDER / SEND / LIST_ORDER
         <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.2)</span>
@@ -199,7 +200,7 @@
     </div>
 
     <!-- GET_MOVEMENTS -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
+    <div class="card md:col-span-2">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="time-outline"></ion-icon> GET_MOVEMENTS
         <span class="text-xs font-normal text-slate-400 dark:text-slate-600">(§5.2.3 — décorateur, voir docs/DESIGN_PATTERNS.md)</span>
@@ -216,7 +217,7 @@
     </div>
 
     <!-- ADD_TEMPLATE -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div class="card">
       <h2 class="font-semibold flex items-center gap-2 mb-3">
         <ion-icon name="add-circle-outline"></ion-icon> ADD_TEMPLATE
       </h2>
@@ -232,7 +233,7 @@
     </div>
 
     <!-- Templates & categories (API-only convenience, not a subject instruction) -->
-    <div class="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm md:col-span-2">
+    <div class="card md:col-span-2">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold flex items-center gap-2">
           <ion-icon name="albums-outline"></ion-icon> Templates &amp; catégories
@@ -318,6 +319,85 @@
   }
   .chip:hover { border-color: #0ea5e9; color: #0284c7; }
   .dark .chip:hover { color: #38bdf8; }
+
+  /* ---- "Cool" visual layer: aurora background, glass cards, motion ---- */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .aurora span {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 0.35;
+    animation: drift 24s ease-in-out infinite;
+  }
+  .aurora span:nth-child(1) { width: 30rem; height: 30rem; top: -10rem; left: -8rem; background: #38bdf8; }
+  .aurora span:nth-child(2) { width: 26rem; height: 26rem; top: 8rem; right: -8rem; background: #a78bfa; animation-delay: -8s; }
+  .aurora span:nth-child(3) { width: 26rem; height: 26rem; bottom: -12rem; left: 22%; background: #34d399; animation-delay: -16s; }
+  .dark .aurora span { opacity: 0.16; }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(3rem, 2.5rem) scale(1.1); }
+    66% { transform: translate(-2.5rem, 3rem) scale(0.95); }
+  }
+
+  .brand-title {
+    background: linear-gradient(90deg, #0284c7, #7c3aed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .brand-title {
+    background: linear-gradient(90deg, #38bdf8, #c084fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .rocket-float { display: inline-block; animation: float 3s ease-in-out infinite; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-6deg); }
+    50% { transform: translateY(-6px) rotate(6deg); }
+  }
+
+  .card {
+    position: relative;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background-color: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(203, 213, 225, 0.6);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.18);
+    border-color: rgba(14, 165, 233, 0.5);
+  }
+  .dark .card {
+    background-color: rgba(15, 23, 42, 0.6);
+    border-color: rgba(51, 65, 85, 0.6);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+  .dark .card:hover {
+    box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.55);
+    border-color: rgba(56, 189, 248, 0.45);
+  }
+
+  .line-in { display: inline-block; animation: lineIn 0.28s ease both; }
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aurora span, .rocket-float, .line-in { animation: none !important; }
+  }
 </style>
 
 <script>
@@ -391,16 +471,88 @@ async function loadFactories() {
   });
 }
 
+// A "real" success (a mutation actually happened), as opposed to a mere check like
+// VERIFY's AVAILABLE — only these are worth a confetti burst.
+function isCelebrationLine(line) {
+  return line === "STOCK_UPDATED" || line.startsWith("TEMPLATE_ADDED") || line.startsWith("COMPLETED") || /^ORDER\d+$/.test(line);
+}
+
 function render(id, lines) {
   const pre = document.getElementById(id);
   pre.innerHTML = "";
-  for (const line of lines) {
+  let celebrate = false;
+  lines.forEach((line, i) => {
     const span = document.createElement("span");
-    span.className = classifyLine(line);
+    span.className = `${classifyLine(line)} line-in`;
+    span.style.animationDelay = `${Math.min(i, 20) * 30}ms`;
     span.textContent = line;
     pre.appendChild(span);
     pre.appendChild(document.createTextNode("\n"));
+    if (isCelebrationLine(line)) celebrate = true;
+  });
+  if (celebrate) burstConfetti();
+}
+
+// ---- Success confetti: a small pure-canvas burst, no external library ----
+let confettiCanvas, confettiCtx;
+function ensureConfettiCanvas() {
+  if (confettiCanvas) return;
+  confettiCanvas = document.createElement("canvas");
+  Object.assign(confettiCanvas.style, { position: "fixed", inset: "0", pointerEvents: "none", zIndex: "9999" });
+  document.body.appendChild(confettiCanvas);
+  confettiCtx = confettiCanvas.getContext("2d");
+  const resize = () => {
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+  };
+  resize();
+  window.addEventListener("resize", resize);
+}
+
+function burstConfetti() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  ensureConfettiCanvas();
+  const colors = ["#38bdf8", "#34d399", "#a78bfa", "#fbbf24", "#f472b6"];
+  const particles = Array.from({ length: 60 }, () => ({
+    x: confettiCanvas.width / 2 + (Math.random() - 0.5) * 240,
+    y: confettiCanvas.height * 0.2,
+    vx: (Math.random() - 0.5) * 9,
+    vy: Math.random() * -6 - 2,
+    size: Math.random() * 6 + 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    rotation: Math.random() * 360,
+    spin: (Math.random() - 0.5) * 20,
+    life: 0,
+  }));
+  const gravity = 0.28;
+  const maxLife = 90;
+
+  function tick() {
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    let alive = false;
+    for (const p of particles) {
+      if (p.life >= maxLife) continue;
+      alive = true;
+      p.vy += gravity;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.spin;
+      p.life++;
+      confettiCtx.save();
+      confettiCtx.translate(p.x, p.y);
+      confettiCtx.rotate((p.rotation * Math.PI) / 180);
+      confettiCtx.globalAlpha = Math.max(1 - p.life / maxLife, 0);
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      confettiCtx.restore();
+    }
+    if (alive) {
+      requestAnimationFrame(tick);
+    } else {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
   }
+  requestAnimationFrame(tick);
 }
 
 async function runStocks() {
