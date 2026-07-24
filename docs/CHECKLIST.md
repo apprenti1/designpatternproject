@@ -40,15 +40,16 @@ Suivi de l'avancement par rapport au [sujet](../readme.md). Coché = fait et vé
 
 Modules choisis (les 4 décrits dans le sujet — le minimum demandé est 2) :
 
-- [ ] **RECEIVE** (§5.1.1) — `RECEIVE ARGS` pour ajouter pièces/assemblages/drones en stock
-- [ ] **Contraintes de construction étendues** (§5.1.2) — jusqu'à 3 modules de déplacement et 2 générateurs ; ≥2 modules de déplacement ⇒ 2 générateurs obligatoires, sinon template invalide ; à répercuter dans `AssemblyPlanner`, `ADD_TEMPLATE`, les catégories et `NEEDED_STOCKS`/`VERIFY`/`PRODUCE`
-- [ ] **Modificateurs de drone** `WITH`/`WITHOUT`/`REPLACE` (§5.2.1) — nouveau séparateur `;` quand utilisé, ancien format `,` toujours valide, composable
-- [ ] **Gestion de commandes** `ORDER`/`SEND`/`LIST_ORDER` (§5.2.2) — identifiant de commande, envoi partiel, `Remaining for ORDERID : ARGS` / `COMPLETED ORDERID`
-- [ ] **Traçabilité des flux** `GET_MOVEMENTS [ARGS]` (§5.2.3) — historique de tous les mouvements de stock, filtrable
-- [ ] **Multi-usines** `TRANSFER`/`IN Usine1` (§5.2.4) — plusieurs usines, transfert de stock, précision `IN Usine1` sur les instructions existantes, erreur `Missing target factory` si ambigu
+- [x] **RECEIVE** (§5.1.1) — `RECEIVE ARGS` pour ajouter pièces/assemblages/drones en stock, validé contre les catalogues, `STOCK_UPDATED`
+- [x] **Contraintes de construction étendues** (§5.1.2) — jusqu'à 3 modules de déplacement et 2 générateurs ; ≥2 modules de déplacement ⇒ 2 générateurs obligatoires, sinon template invalide ; répercuté dans `AssemblyPlanner`, `ADD_TEMPLATE` (via `DroneTemplateBuilder`), les catégories (`CategoryRules`) et `NEEDED_STOCKS`/`VERIFY`/`PRODUCE`
+- [x] **Modificateurs de drone** `WITH`/`WITHOUT`/`REPLACE` (§5.2.1) — nouveau séparateur `;` quand utilisé, ancien format `,` toujours valide, composable, résolu via `DroneOrderParser` + `DroneTemplateBuilder`
+- [x] **Gestion de commandes** `ORDER`/`SEND`/`LIST_ORDER` (§5.2.2) — identifiant de commande incrémental, envoi partiel, `Remaining for ORDERID : ARGS` / `COMPLETED ORDERID`
+- [x] **Traçabilité des flux** `GET_MOVEMENTS [ARGS]` (§5.2.3) — historique de tous les mouvements de stock, filtrable, implémenté via le pattern Decorator (`LoggingInstruction`)
+- [x] **Multi-usines** `TRANSFER`/`IN Usine1` (§5.2.4) — deux usines de démonstration, transfert de stock, précision `IN Usine1` sur `STOCKS`/`RECEIVE`/`PRODUCE`/`VERIFY`/`SEND`, erreur `Missing target factory` si ambigu (filtrée par stock suffisant pour `PRODUCE`, comme l'exemple du sujet)
 
 ## Qualité / bonus
 
-- [x] Suite de tests xUnit (41 tests : `ArgsParser`, `AssemblyPlanner`, `InstructionHandler`, `StockStore`, `CategoryClassifier`, `ADD_TEMPLATE`)
+- [x] Suite de tests xUnit (79 tests : `ArgsParser`, `AssemblyPlanner`, `InstructionHandler`, `StockStore`, `CategoryClassifier`, `ADD_TEMPLATE`, + phase 3 : `ExtendedConstruction`, `Receive`, `DroneModifier`, `Order`, `MultiFactory`, `Movement`)
 - [x] Build sans warning (`dotnet build`, analyzers + StyleCop actifs)
-- [ ] Étendre les tests à la phase 3 au fur et à mesure
+- [x] Tests étendus à la phase 3 (38 nouveaux tests)
+- [x] 4e design pattern introduit et justifié en phase 3 (Decorator, `LoggingInstruction`) — voir `docs/DESIGN_PATTERNS.md`
