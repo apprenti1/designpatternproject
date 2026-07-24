@@ -146,8 +146,10 @@ dotnet test
 
 **À dire pendant que ça tourne :**
 
-> "41 tests xUnit — parsing des arguments, planification d'assemblage, les instructions,
-> la persistance du stock, la classification par catégorie, et la validation d'`ADD_TEMPLATE`."
+> "79 tests xUnit — parsing des arguments, planification d'assemblage, les instructions,
+> la persistance du stock, la classification par catégorie, la validation d'`ADD_TEMPLATE`, et les
+> 4 modules de la phase 3 (contraintes étendues, RECEIVE, modificateurs, commandes, multi-usines,
+> mouvements)."
 
 ### 6.2 Lancer l'API
 
@@ -187,25 +189,80 @@ jury demande à voir la surface de l'API plutôt que le front.
 
 ---
 
-## 7. Ce qu'il reste (30s)
+## 7. Phase 3 — modules complémentaires (4-5 min)
 
 **À dire :**
 
-> "La phase 3 ajoute des modules complémentaires — on a prévu d'implémenter les 4 décrits dans le
-> sujet : modificateurs de drone (WITH/WITHOUT/REPLACE), gestion de commandes (ORDER/SEND),
-> traçabilité des mouvements (GET_MOVEMENTS), et multi-usines (TRANSFER/IN). Le pattern Repository
-> et le pattern Command ont été conçus en phase 2 en anticipant ces deux derniers."
+> "La phase 3 ajoute les 4 modules complémentaires décrits dans le sujet — le minimum demandé était
+> 2. Les patterns Repository et Command conçus en phase 2 ont directement servi : le multi-usines
+> n'a été qu'un nouveau `FactoryStore` sans toucher `InstructionHandler`, et la traçabilité a été
+> ajoutée avec un 4e pattern, Decorator, sans modifier aucune commande existante."
+
+### 7.1 Contraintes de construction étendues (§5.1.2) + RECEIVE (§5.1.1)
+
+Montrer `Domain/DroneTemplateBuilder.cs` : un drone peut désormais avoir jusqu'à 2 générateurs et
+3 modules de déplacement, avec la règle « ≥2 modules de déplacement ⇒ 2 générateurs obligatoires ».
+Démo : carte **ADD_TEMPLATE**, ou directement en API, un template à 2 générateurs. Carte **RECEIVE**
+pour réapprovisionner le stock.
+
+### 7.2 Modificateurs de drone WITH/WITHOUT/REPLACE (§5.2.1)
+
+Montrer `Commands/DroneOrderParser.cs`. Chip **VERIFY** → `1 DXF-1 WITH 1 Generator_GF1` : le
+drone est reclassé (`DroneTemplateBuilder`, la même logique que pour `ADD_TEMPLATE`) avant d'être
+vérifié — point de couture entre les deux fonctionnalités.
+
+### 7.3 ORDER / SEND / LIST_ORDER (§5.2.2)
+
+Carte **ORDER / SEND / LIST_ORDER** : chip `ORDER 2 DXF-1` → identifiant `ORDER1` ; chip
+`SEND ORDER1, 1 DXF-1` → `Remaining for ORDER1 : 1 DXF-1` (nécessite du stock de DXF-1, produire
+avant si besoin) ; `LIST_ORDER` se rafraîchit automatiquement à chaque étape.
+
+### 7.4 GET_MOVEMENTS (§5.2.3) — Decorator
+
+**À dire :**
+
+> "GET_MOVEMENTS doit renvoyer tout ce qui a impacté le stock. Plutôt que d'ajouter un appel de
+> journalisation dans chaque méthode d'`InstructionHandler`, on enveloppe les commandes concernées
+> (RECEIVE, PRODUCE, SEND, TRANSFER) dans un décorateur `LoggingInstruction`, câblé une seule fois
+> dans `InstructionRegistry`. Aucune commande existante n'a été modifiée."
+
+Montrer `Commands/Instructions/LoggingInstruction.cs`. Démo : carte **GET_MOVEMENTS**, chip
+"Tout l'historique" après avoir exécuté RECEIVE/PRODUCE/TRANSFER/SEND plus haut — montrer que
+`STOCKS`/`VERIFY` (lecture seule) n'apparaissent pas dans l'historique.
+
+### 7.5 Multi-usines TRANSFER / IN (§5.2.4)
+
+Carte **STOCKS** : sélecteur d'usine ("Toutes les usines" agrège, `Usine1`/`Usine2` filtrent).
+Carte **TRANSFER** : chip `Usine1, Usine2, 3 Hull_HF1`. Démo de l'ambiguïté : carte **PRODUCE**
+sans sélectionner d'usine avec les deux usines existantes → `ERROR Missing target factory.
+Available factory for this instruction are Usine1 and Usine2` (ou une seule listée si l'autre n'a
+pas assez de stock — reproduit l'exemple exact du sujet §5.2.4).
+
+**Point technique à mentionner :** les templates restent globaux (partagés entre usines), seul le
+stock est partitionné — décision documentée dans `docs/HYPOTHESES.md` ("Multi-usines — portée").
+
+---
+
+## 8. Ce qui reste hors code (30s)
+
+**À dire :**
+
+> "Côté code, les 3 phases et les 4 modules complémentaires sont complets et testés. Il reste les
+> livrables administratifs du sujet : les slides de cette soutenance et le rapport PDF."
 
 Montrer `docs/CHECKLIST.md` en une ligne si le jury demande l'état d'avancement global.
 
 ---
 
-## 8. Questions probables — préparer une réponse courte
+## 9. Questions probables — préparer une réponse courte
 
 | Question | Réponse courte |
 |---|---|
 | Pourquoi une API REST et pas la console du sujet ? | Même logique métier, aucun `Console` dans `InstructionHandler` ; transport HTTP choisi pour brancher un front, documenté comme déviation assumée dans `docs/HYPOTHESES.md`. |
-| Pourquoi ces 3 patterns et pas d'autres (Factory, Builder, Observer...) ? | Chacun répond à une douleur concrète du code naïf (catégories, persistance, dispatch) plutôt qu'un pattern plaqué sans besoin — voir "alternatives écartées" dans `docs/DESIGN_PATTERNS.md`. |
+| Pourquoi ces 4 patterns et pas d'autres (Factory, Builder, Observer...) ? | Chacun répond à une douleur concrète du code naïf (catégories, persistance, dispatch, traçabilité) plutôt qu'un pattern plaqué sans besoin — voir "alternatives écartées" dans `docs/DESIGN_PATTERNS.md`. |
+| Pourquoi seulement 2 usines et pas de `CREATE_FACTORY` ? | Le sujet ne décrit que `TRANSFER`/`IN Usine1`, pas de création dynamique — deux usines de démonstration suffisent à illustrer le module (`Program.cs`), documenté dans `docs/HYPOTHESES.md`. |
+| Les templates sont-ils aussi partitionnés par usine ? | Non, volontairement : seul le stock l'est. Le sujet ne donne un exemple détaillé que pour `PRODUCE`/`GET_STOCKS` ; dupliquer les templates par usine aurait démesurément alourdi le module — documenté comme hypothèse. |
+| Comment `REPLACE B Piece1, C Piece2` est-il interprété ? | Comme une paire : retirer B exemplaires de Piece1, ajouter C exemplaires de Piece2 — pas deux opérations indépendantes. Cohérent avec l'exemple composé du sujet §5.2.1. |
 | Pourquoi ne pas avoir mis toute la logique dans les classes `Command` ? | Aurait cassé/dupliqué la suite de tests déjà écrite contre `InstructionHandler` ; le Command reste volontairement une coquille fine. |
 | Comment WDS-1 est-il Submersible si son module principal n'a jamais le tag (S) ? | Le sujet précise explicitement que le module principal ne restreint jamais la catégorisation — donc seules coque/générateur/déplacement/système comptent. Détaillé dans `docs/HYPOTHESES.md`. |
 | Que renvoie `ADD_TEMPLATE` en cas de succès ? Le sujet ne le dit pas. | Choix `TEMPLATE_ADDED {NOM}`, sur le même principe que `STOCK_UPDATED` pour `PRODUCE` — documenté comme hypothèse. |
