@@ -82,14 +82,12 @@ public static class DroneOrderParser
         var matches = ModifierKeyword.Matches(segment);
         var head = (matches.Count == 0 ? segment : segment[..matches[0].Index]).Trim();
 
-        var headParts = head.Split(' ', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (headParts.Length != 2 || !int.TryParse(headParts[0], out var quantity) || quantity <= 0)
+        if (!ArgsParser.TryParseQuantityAndName(head, out var quantity, out var name))
         {
             error = $"Invalid entry '{segment}', expected format '<quantity> <DroneName>'";
             return false;
         }
 
-        var name = headParts[1];
         var template = templates.Find(name);
         if (template is null)
         {
@@ -224,14 +222,13 @@ public static class DroneOrderParser
 
         foreach (var rawEntry in block.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            var parts = rawEntry.Split(' ', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 2 || !int.TryParse(parts[0], out var quantity) || quantity <= 0)
+            if (!ArgsParser.TryParseQuantityAndName(rawEntry, out var quantity, out var piece))
             {
                 error = $"Invalid entry '{rawEntry}', expected format '<quantity> <Piece>'";
                 return false;
             }
 
-            pieces.Add((quantity, parts[1]));
+            pieces.Add((quantity, piece));
         }
 
         return true;
