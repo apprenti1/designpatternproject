@@ -19,18 +19,35 @@ public static class ArgsParser
 
         foreach (var rawEntry in args.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            var parts = rawEntry.Split(' ', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 2 || !int.TryParse(parts[0], out var quantity) || quantity <= 0)
+            if (!TryParseQuantityAndName(rawEntry, out var quantity, out var name))
             {
                 error = $"Invalid entry '{rawEntry}', expected format '<quantity> <DroneName>'";
                 quantities = new Dictionary<string, int>();
                 return false;
             }
 
-            var name = parts[1];
             quantities[name] = quantities.GetValueOrDefault(name) + quantity;
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// Parses one "&lt;quantity&gt; &lt;Name&gt;" entry (a single word-count then a name), the
+    /// grammar shared by drone lists (this class) and piece lists inside WITH/WITHOUT/REPLACE
+    /// modifiers (<see cref="DroneOrderParser"/>).
+    /// </summary>
+    internal static bool TryParseQuantityAndName(string rawEntry, out int quantity, out string name)
+    {
+        var parts = rawEntry.Split(' ', 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2 || !int.TryParse(parts[0], out quantity) || quantity <= 0)
+        {
+            quantity = 0;
+            name = string.Empty;
+            return false;
+        }
+
+        name = parts[1];
         return true;
     }
 }
