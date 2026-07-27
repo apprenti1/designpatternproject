@@ -11,6 +11,9 @@ data/templates.json
 data/orders.json
 data/movements.json
 
+# Local Claude Code tooling state (settings, worktrees) — not part of the project
+.claude/
+
 # Local-only documentation, not tracked in the repo
 readme.md
 CLAUDE.md
