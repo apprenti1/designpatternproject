@@ -2,6 +2,7 @@ using DroneFactory.Commands;
 using DroneFactory.Domain.Categories;
 using DroneFactory.Storage;
 using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,9 +11,10 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = EndpointDocs.Info.Title,
-        Version = EndpointDocs.Info.Version,
-        Description = EndpointDocs.Info.Description,
+        Title = "Drone Factory API",
+        Version = "v1",
+        Description = "API REST exposant les instructions du sujet (readme.md §3, §4, §5). "
+            + "Chaque route délègue à `InstructionRegistry` (pattern Command) ; voir docs/DESIGN_PATTERNS.md.",
     });
     options.OperationFilter<EndpointDocsOperationFilter>();
 });
@@ -123,3 +125,76 @@ static string[] Dispatch(InstructionRegistry registry, string name, string args)
     => registry.TryGet(name, out var instruction)
         ? instruction.Execute(args).ToArray()
         : new[] { $"ERROR Unknown instruction '{name}'" };
+
+/// <summary>
+/// Fills in the Swagger summary/description per route (method, relative path), since minimal
+/// API lambdas in net6.0 have no attribute-based equivalent to controller XML doc comments and
+/// <c>WithOpenApi()</c> requires a package only available from net7.0 onward.
+/// </summary>
+#pragma warning disable SA1649 // File name should match first type name: intentionally kept alongside the top-level statements in Program.cs.
+internal sealed class EndpointDocsOperationFilter : IOperationFilter
+{
+    private static readonly Dictionary<(string Method, string Path), (string Summary, string Description)> Docs = new()
+    {
+        [("GET", "api/stocks")] = (
+            "STOCKS (§3.2.1) — inventaire des drones et pièces",
+            "Sans `inFactory` : agrège toutes les usines (§5.2.4). Avec `inFactory=Usine1` : uniquement cette usine."),
+        [("POST", "api/needed-stocks")] = (
+            "NEEDED_STOCKS ARGS (§3.2.2) — pièces nécessaires à une commande",
+            "Détail par drone puis total. `ARGS` accepte le format classique et les modificateurs WITH/WITHOUT/REPLACE (§5.2.1)."),
+        [("POST", "api/instructions")] = (
+            "INSTRUCTIONS ARGS (§3.2.3) — séquence d'assemblage interne",
+            "GET_OUT_STOCK / INSTALL / ASSEMBLE / FINISHED pour chaque drone de la commande (voir AssemblyPlanner)."),
+        [("POST", "api/verify")] = (
+            "VERIFY ARGS (§3.2.4) — validité + disponibilité d'une commande",
+            "`AVAILABLE` / `UNAVAILABLE` / `ERROR`. `ARGS` peut se terminer par `IN Usine1` (§5.2.4)."),
+        [("POST", "api/produce")] = (
+            "PRODUCE ARGS (§3.2.5) — exécute une commande, met à jour le stock",
+            "`STOCK_UPDATED` ou `ERROR`. Sans `IN Usine1` et avec plusieurs usines : liste celles où le stock suffit (§5.2.4)."),
+        [("POST", "api/templates")] = (
+            "ADD_TEMPLATE TEMPLATE_NAME, Piece1, ..., PieceN (§4.3) — enregistre un nouveau template",
+            "Validé contre les règles de catégorie (§4.2) et de construction (§5.1.2). `TEMPLATE_ADDED {NOM}` ou `ERROR`."),
+        [("GET", "api/templates")] = (
+            "Liste des templates + catégories dérivées",
+            "Commodité pour le front (index.html) — pas une instruction du sujet."),
+        [("POST", "api/receive")] = (
+            "RECEIVE ARGS (§5.1.1) — ajoute des pièces/drones au stock",
+            "Valide chaque élément contre les catalogues. `ARGS` peut se terminer par `IN Usine1`."),
+        [("POST", "api/transfer")] = (
+            "TRANSFER Usine1, Usine2, ARGS (§5.2.4) — déplace du stock entre usines",
+            "`STOCK_UPDATED` ou `ERROR` (usine inconnue, usines identiques, stock insuffisant)."),
+        [("POST", "api/orders")] = (
+            "ORDER ARGS (§5.2.2) — ouvre une commande client",
+            "Renvoie un identifiant `ORDERID` incrémental (ex. `ORDER1`) à réutiliser avec SEND."),
+        [("POST", "api/orders/send")] = (
+            "SEND ORDERID, ARGS (§5.2.2) — sort du stock les drones d'une commande",
+            "Corps attendu : `\"args\": \"ORDER1, 1 DXF-1\"` (éventuellement suivi de `IN Usine1`). "
+                + "`Remaining for ORDERID : ARGS` ou `COMPLETED ORDERID`."),
+        [("GET", "api/orders")] = (
+            "LIST_ORDER (§5.2.2) — commandes restant à satisfaire",
+            string.Empty),
+        [("GET", "api/movements")] = (
+            "GET_MOVEMENTS [ARGS] (§5.2.3) — historique des mouvements de stock",
+            "Alimenté par le décorateur `LoggingInstruction` (voir docs/DESIGN_PATTERNS.md). "
+                + "Sans `args` : tout l'historique. Avec `args=Piece1,Piece2` : filtré."),
+        [("GET", "api/factories")] = (
+            "Liste des usines connues",
+            "Commodité pour le front (sélecteur `IN Usine1`) — pas une instruction du sujet."),
+    };
+
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    {
+        var method = context.ApiDescription.HttpMethod ?? string.Empty;
+        var path = context.ApiDescription.RelativePath ?? string.Empty;
+
+        if (Docs.TryGetValue((method, path), out var doc))
+        {
+            operation.Summary = doc.Summary;
+            if (!string.IsNullOrEmpty(doc.Description))
+            {
+                operation.Description = doc.Description;
+            }
+        }
+    }
+}
+#pragma warning restore SA1649
