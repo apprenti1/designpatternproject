@@ -1,7 +1,6 @@
 using DroneFactory.Commands;
 using DroneFactory.Domain.Categories;
 using DroneFactory.Storage;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -48,9 +47,10 @@ app.UseSwaggerUI(options =>
     options.DocumentTitle = "Drone Factory — API";
 });
 
-var repoRootFiles = new PhysicalFileProvider(RepoPaths.FindRepoRoot());
-app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = repoRootFiles });
-app.UseStaticFiles(new StaticFileOptions { FileProvider = repoRootFiles });
+// index.html is self-contained (Tailwind/Ionicons via CDN, no local assets), so a single
+// explicit route serves it — no generic static-file middleware exposing the rest of the repo.
+app.MapGet("/", () => Results.File(Path.Combine(RepoPaths.FindRepoRoot(), "index.html"), "text/html"))
+    .ExcludeFromDescription();
 
 app.MapGet("/api/stocks", (InstructionRegistry registry, string? inFactory) =>
     Results.Ok(new LinesResponse(Dispatch(registry, "STOCKS", ToArgs(inFactory)))))
