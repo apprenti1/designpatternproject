@@ -157,38 +157,21 @@ public sealed class InstructionHandler
 
         var needed = AggregateNeededPieces(order);
 
-        IStockRepository stock;
-        if (factoryName is not null)
+        // Only PRODUCE's missing-factory error is stock-sufficiency-filtered per the
+        // readme.md §5.2.4 worked example; other instructions list every factory (see
+        // TryResolveFactory / docs/HYPOTHESES.md), so the filter is passed in just for this call.
+        if (!TryResolveFactory(
+                factoryName,
+                out var stock,
+                out var factoryError,
+                candidateFilter: f => _factories.GetStock(f).HasAtLeast(needed),
+                noCandidatesError: "Insufficient stock to produce this order in any factory"))
         {
-            if (!_factories.Exists(factoryName))
-            {
-                yield return $"ERROR Unknown factory `{factoryName}`";
-                yield break;
-            }
-
-            stock = _factories.GetStock(factoryName);
-        }
-        else if (_factories.Names.Count == 1)
-        {
-            stock = _factories.GetStock(_factories.Names[0]);
-        }
-        else
-        {
-            // Only PRODUCE's missing-factory error is stock-sufficiency-filtered per the
-            // readme.md §5.2.4 worked example; other instructions list every factory (see
-            // TryResolveFactory / docs/HYPOTHESES.md).
-            var candidates = _factories.Names.Where(f => _factories.GetStock(f).HasAtLeast(needed)).ToList();
-            if (candidates.Count == 0)
-            {
-                yield return "ERROR Insufficient stock to produce this order in any factory";
-                yield break;
-            }
-
-            yield return $"ERROR Missing target factory. Available factory for this instruction are {JoinWithAnd(candidates)}";
+            yield return $"ERROR {factoryError}";
             yield break;
         }
 
-        if (!stock.HasAtLeast(needed))
+        if (!stock!.HasAtLeast(needed))
         {
             yield return "ERROR Insufficient stock to produce this order";
             yield break;
@@ -214,13 +197,10 @@ public sealed class InstructionHandler
             yield break;
         }
 
-        foreach (var (name, _) in items)
+        if (!TryValidateKnownItems(items, out var itemsError))
         {
-            if (!IsKnownStockItem(name))
-            {
-                yield return $"ERROR `{name}` is not a recognized piece, system or drone";
-                yield break;
-            }
+            yield return $"ERROR {itemsError}";
+            yield break;
         }
 
         if (!TryResolveFactory(factoryName, out var stock, out var factoryError))
@@ -280,13 +260,10 @@ public sealed class InstructionHandler
             yield break;
         }
 
-        foreach (var (name, _) in items)
+        if (!TryValidateKnownItems(items, out var itemsError))
         {
-            if (!IsKnownStockItem(name))
-            {
-                yield return $"ERROR `{name}` is not a recognized piece, system or drone";
-                yield break;
-            }
+            yield return $"ERROR {itemsError}";
+            yield break;
         }
 
         var from = _factories.GetStock(fromName);
@@ -441,7 +418,19 @@ public sealed class InstructionHandler
         return string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1];
     }
 
-    private bool TryResolveFactory(string? factoryName, out IStockRepository? stock, out string? error)
+    /// <summary>
+    /// Resolves an explicit "IN Usine1" qualifier, or the sole factory when there is only one,
+    /// or fails with the "missing target factory" error listing the candidates. Most callers list
+    /// every factory as candidates; <paramref name="candidateFilter"/> lets PRODUCE narrow that
+    /// list to factories with enough stock instead (readme.md §5.2.4), with its own error message
+    /// via <paramref name="noCandidatesError"/> when the filtered list is empty.
+    /// </summary>
+    private bool TryResolveFactory(
+        string? factoryName,
+        out IStockRepository? stock,
+        out string? error,
+        Func<string, bool>? candidateFilter = null,
+        string? noCandidatesError = null)
     {
         if (factoryName is not null)
         {
@@ -465,7 +454,15 @@ public sealed class InstructionHandler
         }
 
         stock = null;
-        error = $"Missing target factory. Available factory for this instruction are {JoinWithAnd(_factories.Names)}";
+
+        var candidates = candidateFilter is null ? _factories.Names : _factories.Names.Where(candidateFilter).ToList();
+        if (candidateFilter is not null && candidates.Count == 0)
+        {
+            error = noCandidatesError;
+            return false;
+        }
+
+        error = $"Missing target factory. Available factory for this instruction are {JoinWithAnd(candidates)}";
         return false;
     }
 
@@ -473,6 +470,25 @@ public sealed class InstructionHandler
         => PieceCatalog.All.Any(p => p.Name == name)
         || SystemCatalog.All.Any(s => s.Name == name)
         || _templates.Find(name) is not null;
+
+    /// <summary>
+    /// Shared by <see cref="Receive"/> and <see cref="Transfer"/>: every item name in a stock
+    /// movement must be a recognized piece, system or drone template.
+    /// </summary>
+    private bool TryValidateKnownItems(IReadOnlyDictionary<string, int> items, out string? error)
+    {
+        foreach (var name in items.Keys)
+        {
+            if (!IsKnownStockItem(name))
+            {
+                error = $"`{name}` is not a recognized piece, system or drone";
+                return false;
+            }
+        }
+
+        error = null;
+        return true;
+    }
 
     private bool TryParseOrder(string args, out List<(string Name, int Quantity, DroneTemplate Template)> order, out string? error)
         => DroneOrderParser.TryParse(args, _templates, out order, out error);

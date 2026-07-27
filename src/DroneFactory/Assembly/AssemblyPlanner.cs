@@ -23,12 +23,15 @@ public static class AssemblyPlanner
         pullOrder.AddRange(drone.MovementModules);
         pullOrder.Add(drone.ControlModule);
 
+        // Count occurrences once (a drone can need e.g. 2 of the same movement module), then
+        // emit one GET_OUT_STOCK per distinct piece, in first-use order.
+        var countByPiece = pullOrder.GroupBy(piece => piece).ToDictionary(group => group.Key, group => group.Count());
         var pulled = new HashSet<string>();
         foreach (var piece in pullOrder)
         {
             if (pulled.Add(piece))
             {
-                yield return $"GET_OUT_STOCK {pullOrder.Count(p => p == piece)} {piece}";
+                yield return $"GET_OUT_STOCK {countByPiece[piece]} {piece}";
             }
         }
 
