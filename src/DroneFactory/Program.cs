@@ -18,6 +18,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var dataDirectory = RepoPaths.DataDirectory;
+var indexHtmlPath = Path.Combine(RepoPaths.FindRepoRoot(), "index.html");
 var factories = new FactoryStore(new Dictionary<string, IStockRepository>
 {
     ["Usine1"] = new StockStore(dataDirectory),
@@ -49,8 +50,7 @@ app.UseSwaggerUI(options =>
 
 // index.html is self-contained (Tailwind/Ionicons via CDN, no local assets), so a single
 // explicit route serves it — no generic static-file middleware exposing the rest of the repo.
-app.MapGet("/", () => Results.File(Path.Combine(RepoPaths.FindRepoRoot(), "index.html"), "text/html"))
-    .ExcludeFromDescription();
+app.MapGet("/", () => Results.File(indexHtmlPath, "text/html")).ExcludeFromDescription();
 
 app.MapGet("/api/stocks", (InstructionRegistry registry, string? inFactory) =>
     Results.Ok(new LinesResponse(Dispatch(registry, "STOCKS", ToArgs(inFactory)))))
