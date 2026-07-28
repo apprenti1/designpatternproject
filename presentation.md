@@ -184,8 +184,9 @@ moment pour montrer que c'est géré.
 
 ### 6.4 (Optionnel si le temps le permet) Swagger
 
-En environnement de développement, `/swagger` liste tous les endpoints REST générés — utile si le
-jury demande à voir la surface de l'API plutôt que le front.
+`/swagger` liste tous les endpoints REST, groupés par tag (Stock, Assemblage, Templates, Commandes,
+Traçabilité, Usines), avec un résumé par route — utile si le jury demande à voir la surface de
+l'API plutôt que le front. Toujours actif (pas limité à l'environnement Development).
 
 ---
 
